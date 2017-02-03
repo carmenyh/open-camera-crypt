@@ -33,4 +33,5 @@ android {
 dependencies {
     compile 'com.android.support:support-v4:24.0.0'
     testCompile 'junit:junit:4.12'
+    compile files('libs/spongy-castle-core-1.54.0.0.jar')
 }
