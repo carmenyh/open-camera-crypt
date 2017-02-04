@@ -335,9 +335,9 @@ public class MyPreferenceFragment extends PreferenceFragment implements OnShared
             	        String filepath = "/my/new/filepath/key" + new java.util.Random().nextInt(20) + ".pem";
 
                         pref.setSummary(filepath);
-                        pref.getEditor().putString(filepath).commit();
+                        pref.getEditor().putString("value", filepath).commit();
 
-                        main_activity.getEncryptor().updatePublicKey();
+                        //getMainActivity().getEncryptor().updatePublicKey();
                 	}
                 	return false;
                 }
