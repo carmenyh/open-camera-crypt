@@ -273,7 +273,7 @@ public class MainActivity extends Activity implements AudioListener.AudioListene
 				longClickedGallery();
 				return true;
 			}
-        });
+   		     });
 		if( MyDebug.LOG )
 			Log.d(TAG, "onCreate: time after setting gallery long click listener: " + (System.currentTimeMillis() - debug_time));
 
@@ -369,6 +369,9 @@ public class MainActivity extends Activity implements AudioListener.AudioListene
 
 		if( MyDebug.LOG )
 			Log.d(TAG, "onCreate: total time for Activity startup: " + (System.currentTimeMillis() - debug_time));
+
+		// Create the encryptor
+		this.encryptor = new Encryptor(this);
 	}
 
 	/* This method sets the preference defaults which are set specific for a particular device.
