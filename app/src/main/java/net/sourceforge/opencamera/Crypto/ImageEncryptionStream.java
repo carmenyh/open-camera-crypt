@@ -2,7 +2,6 @@ package net.sourceforge.opencamera.Crypto;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.security.Key;
 import java.security.SecureRandom;
 
 import org.spongycastle.crypto.StreamCipher;
