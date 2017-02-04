@@ -38,6 +38,8 @@ import android.media.ExifInterface;
 import android.media.Image;
 import android.net.Uri;
 import android.os.Build;
+import android.preference.Preference;
+import android.preference.PreferenceManager;
 import android.util.Log;
 
 /** Handles the saving (and any required processing) of photos.
@@ -1115,6 +1117,7 @@ public class ImageSaver extends Thread {
 			
 			if( picFile != null ) {
                 OutputStream outputStream = new FileOutputStream(picFile);
+                PreferenceManager.getDefaultSharedPreferences(context).getBoolean("encrypt", true);
                 if (true) { // TODO change to check if encryption is enabled
                     // TODO change to use key encoding already read in
                     ReadAsymmetricKey keyReader = new ReadAsymmetricKey();
