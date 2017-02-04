@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.security.PublicKey;
 import java.security.SecureRandom;
 
 import org.spongycastle.crypto.AsymmetricBlockCipher;
@@ -45,7 +46,7 @@ public class ImageEncryptionStream extends OutputStream{
             throw new IllegalStateException("Already closed");
         }
         // Setup a cipher and ouput stream for encrypting the symmetric key and initialization vector
-        AsymmetricKeyParameter publicKey = RSAPublicKeyParser.parse(this.asymKey);
+        PublicKey publicKey = RSAPublicKeyParser.parse(this.asymKey);
         AsymmetricBlockCipher asymCipher = new RSAEngine();
         asymCipher.init(true, publicKey);
 

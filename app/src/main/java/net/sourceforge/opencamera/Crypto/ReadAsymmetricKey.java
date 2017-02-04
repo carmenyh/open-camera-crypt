@@ -45,7 +45,7 @@ import java.security.spec.X509EncodedKeySpec;
 
 public class ReadAsymmetricKey /* extends Activity */ {
     public static byte[] readKey(String filename) throws IOException {
-	/*
+		/*
         File f = new File(filename);
         int fileSize = (int)f.length();
         FileInputStream in = new FileInputStream(f);
@@ -55,24 +55,18 @@ public class ReadAsymmetricKey /* extends Activity */ {
             in.read(res, totalRead, fileSize - totalRead);
         }
         return res;
-	*/
-	try {
-	    PemReader pempublic = new PemReader(new FileReader(new File("public.pem")));
-	    byte[] bytes = pempublic.readPemObject().getContent();
-	    return bytes;
-	} catch (FileNotFoundException e) {
-	    // TODO Auto-generated catch block
-	    e.printStackTrace();
-	} catch (IOException e) {
-	    // TODO Auto-generated catch block
-	    e.printStackTrace();
-	} catch (InvalidKeySpecException e) {
-	    // TODO Auto-generated catch block
-	    e.printStackTrace();
-	} catch (NoSuchAlgorithmException e) {
-	    // TODO Auto-generated catch block
-	    e.printStackTrace();
-	}
-	return null;
+		*/
+		try {
+			PemReader pempublic = new PemReader(new FileReader(new File("public.pem")));
+			byte[] bytes = pempublic.readPemObject().getContent();
+			return bytes;
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return null;
     }
 }

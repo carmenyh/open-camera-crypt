@@ -31,11 +31,11 @@ public class RSAPublicKeyParser {
 
         //PublicKeyFactory keyFactory = new PublicKeyFactory();
         //AsymmetricKeyParameter publicKey = keyFactory.createKey(asymKey);
-	try {
-	    return KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(keyEncoding));
-	} catch (Exception e) {
-	    e.printStackTrace();
-	}
-	return null;
+        try {
+            return KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(keyEncoding));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 }
