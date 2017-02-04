@@ -1114,11 +1114,14 @@ public class ImageSaver extends Thread {
 			}
 			
 			if( picFile != null ) {
-				ReadAsymmetricKey keyReader = new ReadAsymmetricKey();
-				byte[] asymKeyInfo = keyReader.readKey("/storage/emulated/0/Download/test-key.pub");
-				OutputStream outputStream = new ImageEncryptionStream(asymKeyInfo,
-						new FileOutputStream(picFile));
-				//OutputStream outputStream = new FileOutputStream(picFile); // TODO Replace this with an encrypted stream if appropriate
+                OutputStream outputStream = new FileOutputStream(picFile);
+                if (true) { // TODO change to check if encryption is enabled
+                    // TODO change to use key encoding already read in
+                    ReadAsymmetricKey keyReader = new ReadAsymmetricKey();
+                    byte[] asymKeyInfo = keyReader.readKey("/storage/emulated/0/Download/test-key.pub");
+
+                    outputStream = new ImageEncryptionStream(asymKeyInfo, outputStream);
+                }
 				try {
 		            if( bitmap != null ) {
 						if( MyDebug.LOG )
@@ -1488,6 +1491,13 @@ public class ImageSaver extends Thread {
     		else {
     		    output = main_activity.getContentResolver().openOutputStream(saveUri); // TODO Replace this with an encrypted stream if appropriate
     		}
+            if (true) { // TODO change to check if encryption is enabled
+                // TODO change to use key encoding already read in
+                ReadAsymmetricKey keyReader = new ReadAsymmetricKey();
+                byte[] asymKeyInfo = keyReader.readKey("/storage/emulated/0/Download/test-key.pub");
+
+                output = new ImageEncryptionStream(asymKeyInfo, output);
+            }
             dngCreator.writeImage(output, image);
     		image.close();
     		image = null;
