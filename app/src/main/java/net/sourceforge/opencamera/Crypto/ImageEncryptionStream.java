@@ -1,16 +1,24 @@
 package net.sourceforge.opencamera.Crypto;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.security.SecureRandom;
 
+import org.spongycastle.crypto.AsymmetricBlockCipher;
+import org.spongycastle.crypto.InvalidCipherTextException;
 import org.spongycastle.crypto.StreamCipher;
+import org.spongycastle.crypto.engines.RSAEngine;
 import org.spongycastle.crypto.engines.Salsa20Engine;
 import org.spongycastle.crypto.io.CipherOutputStream;
 import org.spongycastle.crypto.params.AsymmetricKeyParameter;
 import org.spongycastle.crypto.params.KeyParameter;
 import org.spongycastle.crypto.params.ParametersWithIV;
 import org.spongycastle.crypto.util.PublicKeyFactory;
+import org.spongycastle.util.io.pem.PemObject;
+import org.spongycastle.util.io.pem.PemObjectParser;
+import org.spongycastle.util.io.pem.PemReader;
 
 /**
  * Created by bgardon on 3/02/17.
@@ -29,7 +37,7 @@ public class ImageEncryptionStream extends OutputStream{
         this.out = out;
     }
 
-    public void init() throws IOException {
+    public void init() throws IOException, InvalidCipherTextException {
         if (asymKey == null || out == null) {
             throw new IllegalStateException("Already initialized");
         }
@@ -37,11 +45,13 @@ public class ImageEncryptionStream extends OutputStream{
             throw new IllegalStateException("Already closed");
         }
         // Setup a cipher and ouput stream for encrypting the symmetric key and initialization vector
+        PemReader pemReader = new PemReader(new InputStreamReader(new ByteArrayInputStream(this.asymKey)));
+        PemObject pem = pemReader.readPemObject();
+
         PublicKeyFactory keyFactory = new PublicKeyFactory();
         AsymmetricKeyParameter publicKey = keyFactory.createKey(asymKey);
-        StreamCipher asymCipher = new Salsa20Engine();
+        AsymmetricBlockCipher asymCipher = new RSAEngine();
         asymCipher.init(true, publicKey);
-        CipherOutputStream asymOut  = new CipherOutputStream(out, asymCipher);
 
         this.asymKey = null;
 
@@ -53,10 +63,13 @@ public class ImageEncryptionStream extends OutputStream{
         random.nextBytes(iv);
 
         // Write out the symmetric key, then the initialization vector
-        asymOut.write(symKey);
-        asymOut.write(iv);
-        asymOut.flush();
-        asymOut.close();
+        byte[] symKeyCrypt = asymCipher.processBlock(symKey, 0, symKey.length);
+        byte[] ivCrypt = asymCipher.processBlock(iv, 0, iv.length);
+        out.write(symKeyCrypt.length);
+        out.write(ivCrypt.length);
+        out.write(symKeyCrypt);
+        out.write(ivCrypt);
+        out.flush();
 
         // Set up a cipher and ouput stream for encoding the image data
         StreamCipher cipher = new Salsa20Engine();

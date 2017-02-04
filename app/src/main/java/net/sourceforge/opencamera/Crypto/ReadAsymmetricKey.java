@@ -7,6 +7,11 @@ import android.content.DialogInterface;
 import android.os.Environment;
 import android.util.Log;
 
+import org.spongycastle.asn1.pkcs.PrivateKeyInfo;
+import org.spongycastle.crypto.params.AsymmetricKeyParameter;
+import org.spongycastle.crypto.util.PrivateKeyFactory;
+import org.spongycastle.crypto.util.PrivateKeyInfoFactory;
+
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;

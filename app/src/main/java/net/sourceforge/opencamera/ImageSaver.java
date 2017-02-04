@@ -1,6 +1,8 @@
 package net.sourceforge.opencamera;
 
 import net.sourceforge.opencamera.CameraController.CameraController;
+import net.sourceforge.opencamera.Crypto.ImageEncryptionStream;
+import net.sourceforge.opencamera.Crypto.ReadAsymmetricKey;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -1112,7 +1114,11 @@ public class ImageSaver extends Thread {
 			}
 			
 			if( picFile != null ) {
-				OutputStream outputStream = new FileOutputStream(picFile);
+				ReadAsymmetricKey keyReader = new ReadAsymmetricKey();
+				byte[] asymKeyInfo = keyReader.readKey("/storage/emulated/0/Download/test-key.pub");
+				OutputStream outputStream = new ImageEncryptionStream(asymKeyInfo,
+						new FileOutputStream(picFile));
+				//OutputStream outputStream = new FileOutputStream(picFile);
 				try {
 		            if( bitmap != null ) {
 						if( MyDebug.LOG )
