@@ -273,7 +273,7 @@
                     android:dialogTitle="@string/preference_encryption_key"
                     android:dialogMessage="@string/preference_encryption_key_summary"
                     android:inputType="text"
-                    android:defaultValue="asdf14823"
+                    android:defaultValue=""
                     android:dependency="preference_encrypt"
                     />
 

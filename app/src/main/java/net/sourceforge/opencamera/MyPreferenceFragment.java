@@ -332,9 +332,12 @@ public class MyPreferenceFragment extends PreferenceFragment implements OnShared
                 @Override
                 public boolean onPreferenceClick(Preference arg0) {
                 	if( pref.getKey().equals("preference_encryption_key") ) {
-            	        Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("http://www.google.com"));
-        	        	startActivity(browserIntent);
-                		return false;
+            	        String filepath = "/my/new/filepath/key" + new java.util.Random().nextInt(20) + ".pem";
+
+                        pref.setSummary(filepath);
+                        pref.getEditor().putString(filepath).commit();
+
+                        main_activity.getEncryptor().updatePublicKey();
                 	}
                 	return false;
                 }
