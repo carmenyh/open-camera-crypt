@@ -1,5 +1,11 @@
 package net.sourceforge.opencamera.Crypto;
 
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
+
+import net.sourceforge.opencamera.PreferenceKeys;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.security.NoSuchAlgorithmException;
@@ -11,55 +17,38 @@ import java.security.spec.InvalidKeySpecException;
  */
 
 public class Encryptor {
-    private boolean encryptionOn;
-    private boolean recordExif;
-    private boolean encryptExif;
-    private String publicKeyFile;
+    private Context context;
+    private SharedPreferences preferences;
     private PublicKey publicKey;
-    private String encryptedPhotoSaveLocation;
+
+    public Encryptor(Context context) {
+        this.context = context;
+        this.preferences = PreferenceManager.getDefaultSharedPreferences(context);
+    }
 
     public boolean isEncryptionOn() {
-        return encryptionOn;
+        return this.preferences.getBoolean(PreferenceKeys.getEncryptPreferenceKey(), false);
     }
 
-    public void setEncryptionOn(boolean encryptOn) { this.encryptionOn = encryptOn; }
+//    public boolean isRecordExifOn() {
+//        return this.preferences.getBoolean(PreferenceKeys.getRecordExifKeyKey(), false);
+//    }
 
-    public boolean isRecordExif() {
-        return recordExif;
+    public String getPublicKeyFilename() {
+        return this.preferences.getString(PreferenceKeys.getEncryptionKeyKey(), "");
     }
 
-    public void setRecordExif(boolean recordExif) {
-        this.recordExif = recordExif;
-    }
-
-    public boolean isEncryptExif() {
-        return encryptExif;
-    }
-
-    public void setEncryptExif(boolean encryptExif) {
-        this.encryptExif = encryptExif;
-    }
-
-    public String getPublicKeyFile() {
-        return publicKeyFile;
-    }
-
-    public void setPublicKeyFile(String publicKeyFile) throws NoSuchAlgorithmException, IOException, InvalidKeySpecException {
-        this.publicKeyFile = publicKeyFile;
-        this.publicKey = AsymmetricKeyReader.readKey(publicKeyFile);
+    public void updatePublicKey() throws NoSuchAlgorithmException, IOException, InvalidKeySpecException {
+        this.publicKey = AsymmetricKeyReader.readKey(this.getPublicKeyFilename());
     }
 
     public PublicKey getPublicKey() {
         return publicKey;
     }
 
-    public String getEncryptedPhotoSaveLocation() {
-        return encryptedPhotoSaveLocation;
-    }
-
-    public void setEncryptedPhotoSaveLocation(String encryptedPhotoSaveLocation) {
-        this.encryptedPhotoSaveLocation = encryptedPhotoSaveLocation;
-    }
+//    public String getEncryptedPhotoSaveLocation() {
+//        return this.preferences.getString(PreferenceKeys.getEncryptionSaveLocationKey(), "");
+//    }
 
     public ImageEncryptionStream getEncryptionStream(OutputStream out) {
         return new ImageEncryptionStream(this.publicKey, out);
