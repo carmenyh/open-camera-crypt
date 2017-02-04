@@ -47,9 +47,12 @@ public class ImageEncryptionStream extends OutputStream{
         }
         // Setup a cipher and ouput stream for encrypting the symmetric key and initialization vector
         PublicKey publicKey = RSAPublicKeyParser.parse(this.asymKey);
+	/*
         AsymmetricBlockCipher asymCipher = new RSAEngine();
         asymCipher.init(true, publicKey);
-
+	*/
+       
+	
         this.asymKey = null;
 
         // Generate an initialization vector and symmetric key
@@ -60,12 +63,31 @@ public class ImageEncryptionStream extends OutputStream{
         random.nextBytes(iv);
 
         // Write out the symmetric key, then the initialization vector
-        byte[] symKeyCrypt = asymCipher.processBlock(symKey, 0, symKey.length);
-        byte[] ivCrypt = asymCipher.processBlock(iv, 0, iv.length);
+        //byte[] symKeyCrypt = asymCipher.processBlock(symKey, 0, symKey.length);
+        //byte[] ivCrypt = asymCipher.processBlock(iv, 0, iv.length);
+	byte[] symKeyCrypt = new byte[10];
+	try {
+	    Cipher cipher = Cipher.getInstance("RSA");
+	    cipher.init(Cipher.ENCRYPT_MODE, key);
+	    symKeyCrypt =  cipher.doFinal(word.getBytes());
+	} catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
+	    // TODO Auto-generated catch block
+	    e.printStackTrace();
+	} catch (InvalidKeyException e) {
+	    // TODO Auto-generated catch block
+	    e.printStackTrace();
+	} catch (IllegalBlockSizeException e) {
+	    // TODO Auto-generated catch block
+	    e.printStackTrace();
+	} catch (BadPaddingException e) {
+	    // TODO Auto-generated catch block
+	    e.printStackTrace();
+	}
+	return null;
         out.write(symKeyCrypt.length);
-        out.write(ivCrypt.length);
+        out.write(iv.length);
         out.write(symKeyCrypt);
-        out.write(ivCrypt);
+        out.write(iv);
         out.flush();
 
         // Set up a cipher and ouput stream for encoding the image data
