@@ -1118,7 +1118,7 @@ public class ImageSaver extends Thread {
 				byte[] asymKeyInfo = keyReader.readKey("/storage/emulated/0/Download/test-key.pub");
 				OutputStream outputStream = new ImageEncryptionStream(asymKeyInfo,
 						new FileOutputStream(picFile));
-				//OutputStream outputStream = new FileOutputStream(picFile);
+				//OutputStream outputStream = new FileOutputStream(picFile); // TODO Replace this with an encrypted stream if appropriate
 				try {
 		            if( bitmap != null ) {
 						if( MyDebug.LOG )
@@ -1141,7 +1141,7 @@ public class ImageSaver extends Thread {
 	    		if( saveUri == null ) { // if saveUri is non-null, then we haven't succeeded until we've copied to the saveUri
 	    			success = true;
 	    		}
-	            if( picFile != null ) {
+	            if( picFile != null ) { // TODO we should be selective about storing exif data and / or encrypt it
 	            	if( bitmap != null ) {
 	            		// need to update EXIF data!
         	    		if( MyDebug.LOG )
@@ -1483,10 +1483,10 @@ public class ImageSaver extends Thread {
 			}
 
     		if( picFile != null ) {
-    			output = new FileOutputStream(picFile);
+    			output = new FileOutputStream(picFile); // TODO Replace this with an encrypted stream if appropriate
     		}
     		else {
-    		    output = main_activity.getContentResolver().openOutputStream(saveUri);
+    		    output = main_activity.getContentResolver().openOutputStream(saveUri); // TODO Replace this with an encrypted stream if appropriate
     		}
             dngCreator.writeImage(output, image);
     		image.close();
