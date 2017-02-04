@@ -2,6 +2,7 @@ package net.sourceforge.opencamera;
 
 import net.sourceforge.opencamera.CameraController.CameraController;
 import net.sourceforge.opencamera.CameraController.CameraControllerManager2;
+import net.sourceforge.opencamera.Crypto.Encryptor;
 import net.sourceforge.opencamera.Preview.Preview;
 import net.sourceforge.opencamera.UI.FolderChooserDialog;
 import net.sourceforge.opencamera.UI.MainUI;
@@ -91,6 +92,7 @@ public class MainActivity extends Activity implements AudioListener.AudioListene
 	private TextFormatter textFormatter;
 	private MyApplicationInterface applicationInterface;
 	private Preview preview;
+	private Encryptor encryptor;
 	private OrientationEventListener orientationEventListener;
 	private boolean supports_auto_stabilise;
 	private boolean supports_force_video_4k;
@@ -1701,6 +1703,14 @@ public class MainActivity extends Activity implements AudioListener.AudioListene
 				this.preview.showToast(null, getResources().getString(R.string.changed_save_location) + "\n" + this.applicationInterface.getStorageUtils().getSaveLocation());
 			}
 		}
+	}
+
+	public Encryptor getEncryptor() {
+		return encryptor;
+	}
+
+	public void setEncryptor(Encryptor encryptor) {
+		this.encryptor = encryptor;
 	}
 
 	public static class MyFolderChooserDialog extends FolderChooserDialog {

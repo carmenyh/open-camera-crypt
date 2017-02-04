@@ -13,6 +13,11 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 
 import static android.content.ContentValues.TAG;
@@ -21,8 +26,8 @@ import static android.content.ContentValues.TAG;
  * Created by bgardon on 3/02/17.
  */
 
-public class ReadAsymmetricKey /* extends Activity */ {
-    public static byte[] readKey(String filename) throws IOException {
+public class AsymmetricKeyReader /* extends Activity */ {
+    public static PublicKey readKey(String filename) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
         File f = new File(filename);
         int fileSize = (int)f.length();
         FileInputStream in = new FileInputStream(f);
@@ -31,6 +36,6 @@ public class ReadAsymmetricKey /* extends Activity */ {
         while (totalRead < fileSize) {
             in.read(res, totalRead, fileSize - totalRead);
         }
-        return res;
+        return KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(res));
     }
 }

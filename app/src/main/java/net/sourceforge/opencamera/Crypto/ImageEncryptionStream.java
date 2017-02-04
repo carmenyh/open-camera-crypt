@@ -26,31 +26,30 @@ import org.spongycastle.util.io.pem.PemReader;
  */
 
 public class ImageEncryptionStream extends OutputStream{
-    private byte[] asymKey;
+    private PublicKey publicKey
     private OutputStream out;
     private CipherOutputStream symOut;
 
-    public ImageEncryptionStream(byte[] asymKey, OutputStream out) {
-        if (asymKey == null || out == null) {
+    public ImageEncryptionStream(PublicKey publicKey, OutputStream out) {
+        if (publicKey == null || out == null) {
             throw new IllegalArgumentException();
         }
-        this.asymKey = asymKey;
+        this.publicKey = publicKey;
         this.out = out;
     }
 
     public void init() throws IOException, InvalidCipherTextException {
-        if (asymKey == null || out == null) {
+        if (publicKey == null || out == null) {
             throw new IllegalStateException("Already initialized");
         }
         if (symOut == null) {
             throw new IllegalStateException("Already closed");
         }
         // Setup a cipher and ouput stream for encrypting the symmetric key and initialization vector
-        PublicKey publicKey = RSAPublicKeyParser.parse(this.asymKey);
         AsymmetricBlockCipher asymCipher = new RSAEngine();
         asymCipher.init(true, publicKey);
 
-        this.asymKey = null;
+        this.publicKey = null;
 
         // Generate an initialization vector and symmetric key
         SecureRandom random = new SecureRandom();
@@ -108,7 +107,7 @@ public class ImageEncryptionStream extends OutputStream{
     }
 
     private void checkState() {
-        if (asymKey != null || out != null) {
+        if (publicKey != null || out != null) {
             throw new IllegalStateException("Not yet initialized");
         }
         if (symOut == null) {

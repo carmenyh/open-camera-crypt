@@ -1,24 +1,28 @@
 package net.sourceforge.opencamera.Crypto;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
+import java.security.spec.InvalidKeySpecException;
+
 /**
  * Created by bgardon on 4/02/17.
  */
 
-public class ImageEncryptionSettings {
-    private boolean encryptImages;
+public class Encryptor {
+    private boolean encryptionOn;
     private boolean recordExif;
     private boolean encryptExif;
     private String publicKeyFile;
-    private byte[] publicKeyEncoding;
+    private PublicKey publicKey;
     private String encryptedPhotoSaveLocation;
 
-    public boolean isEncryptImages() {
-        return encryptImages;
+    public boolean isEncryptionOn() {
+        return encryptionOn;
     }
 
-    public void setEncryptImages(boolean encryptImages) {
-        this.encryptImages = encryptImages;
-    }
+    public void setEncryptionOn(boolean encryptOn) { this.encryptionOn = encryptOn; }
 
     public boolean isRecordExif() {
         return recordExif;
@@ -40,16 +44,13 @@ public class ImageEncryptionSettings {
         return publicKeyFile;
     }
 
-    public void setPublicKeyFile(String publicKeyFile) {
+    public void setPublicKeyFile(String publicKeyFile) throws NoSuchAlgorithmException, IOException, InvalidKeySpecException {
         this.publicKeyFile = publicKeyFile;
+        this.publicKey = AsymmetricKeyReader.readKey(publicKeyFile);
     }
 
-    public byte[] getPublicKeyEncoding() {
-        return publicKeyEncoding;
-    }
-
-    public void setPublicKeyEncoding(byte[] publicKeyEncoding) {
-        this.publicKeyEncoding = publicKeyEncoding;
+    public PublicKey getPublicKey() {
+        return publicKey;
     }
 
     public String getEncryptedPhotoSaveLocation() {
@@ -58,5 +59,9 @@ public class ImageEncryptionSettings {
 
     public void setEncryptedPhotoSaveLocation(String encryptedPhotoSaveLocation) {
         this.encryptedPhotoSaveLocation = encryptedPhotoSaveLocation;
+    }
+
+    public ImageEncryptionStream getEncryptionStream(OutputStream out) {
+        return new ImageEncryptionStream(this.publicKey, out);
     }
 }

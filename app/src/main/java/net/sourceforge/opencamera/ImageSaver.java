@@ -2,7 +2,7 @@ package net.sourceforge.opencamera;
 
 import net.sourceforge.opencamera.CameraController.CameraController;
 import net.sourceforge.opencamera.Crypto.ImageEncryptionStream;
-import net.sourceforge.opencamera.Crypto.ReadAsymmetricKey;
+import net.sourceforge.opencamera.Crypto.AsymmetricKeyReader;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -38,8 +38,6 @@ import android.media.ExifInterface;
 import android.media.Image;
 import android.net.Uri;
 import android.os.Build;
-import android.preference.Preference;
-import android.preference.PreferenceManager;
 import android.util.Log;
 
 /** Handles the saving (and any required processing) of photos.
@@ -1117,13 +1115,9 @@ public class ImageSaver extends Thread {
 			
 			if( picFile != null ) {
                 OutputStream outputStream = new FileOutputStream(picFile);
-                PreferenceManager.getDefaultSharedPreferences(context).getBoolean("encrypt", true);
-                if (true) { // TODO change to check if encryption is enabled
-                    // TODO change to use key encoding already read in
-                    ReadAsymmetricKey keyReader = new ReadAsymmetricKey();
-                    byte[] asymKeyInfo = keyReader.readKey("/storage/emulated/0/Download/test-key.pub");
-
-                    outputStream = new ImageEncryptionStream(asymKeyInfo, outputStream);
+                boolean shouldEncrypt = main_activity.getEncryptor().isEncryptionOn();
+                if (shouldEncrypt) {
+                    outputStream = main_activity.getEncryptor().getEncryptionStream(outputStream);
                 }
 				try {
 		            if( bitmap != null ) {
@@ -1494,12 +1488,9 @@ public class ImageSaver extends Thread {
     		else {
     		    output = main_activity.getContentResolver().openOutputStream(saveUri); // TODO Replace this with an encrypted stream if appropriate
     		}
-            if (true) { // TODO change to check if encryption is enabled
-                // TODO change to use key encoding already read in
-                ReadAsymmetricKey keyReader = new ReadAsymmetricKey();
-                byte[] asymKeyInfo = keyReader.readKey("/storage/emulated/0/Download/test-key.pub");
-
-                output = new ImageEncryptionStream(asymKeyInfo, output);
+            boolean shouldEncrypt = main_activity.getEncryptor().isEncryptionOn();
+            if (shouldEncrypt) {
+                output = main_activity.getEncryptor().getEncryptionStream(output);
             }
             dngCreator.writeImage(output, image);
     		image.close();
