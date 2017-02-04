@@ -336,8 +336,6 @@ public class MyPreferenceFragment extends PreferenceFragment implements OnShared
 
                         pref.setSummary(filepath);
                         pref.getEditor().putString(filepath).commit();
-
-                        main_activity.getEncryptor().updatePublicKey();
                 	}
                 	return false;
                 }

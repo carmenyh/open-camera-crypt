@@ -51,6 +51,15 @@ public class Encryptor {
 //    }
 
     public ImageEncryptionStream getEncryptionStream(OutputStream out) {
+        try {
+            this.updatePublicKey();
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (InvalidKeySpecException e) {
+            e.printStackTrace();
+        }
         return new ImageEncryptionStream(this.publicKey, out);
     }
 }
