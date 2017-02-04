@@ -45,11 +45,7 @@ public class ImageEncryptionStream extends OutputStream{
             throw new IllegalStateException("Already closed");
         }
         // Setup a cipher and ouput stream for encrypting the symmetric key and initialization vector
-        PemReader pemReader = new PemReader(new InputStreamReader(new ByteArrayInputStream(this.asymKey)));
-        PemObject pem = pemReader.readPemObject();
-
-        PublicKeyFactory keyFactory = new PublicKeyFactory();
-        AsymmetricKeyParameter publicKey = keyFactory.createKey(asymKey);
+        AsymmetricKeyParameter publicKey = RSAPublicKeyParser.parse(this.asymKey);
         AsymmetricBlockCipher asymCipher = new RSAEngine();
         asymCipher.init(true, publicKey);
 
