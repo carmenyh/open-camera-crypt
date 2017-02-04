@@ -10,6 +10,7 @@ public class ImageEncryptionSettings {
     private boolean encryptExif;
     private String publicKeyFile;
     private byte[] publicKeyEncoding;
+    private String encryptedPhotoSaveLocation;
 
     public boolean isEncryptImages() {
         return encryptImages;
@@ -49,5 +50,13 @@ public class ImageEncryptionSettings {
 
     public void setPublicKeyEncoding(byte[] publicKeyEncoding) {
         this.publicKeyEncoding = publicKeyEncoding;
+    }
+
+    public String getEncryptedPhotoSaveLocation() {
+        return encryptedPhotoSaveLocation;
+    }
+
+    public void setEncryptedPhotoSaveLocation(String encryptedPhotoSaveLocation) {
+        this.encryptedPhotoSaveLocation = encryptedPhotoSaveLocation;
     }
 }
