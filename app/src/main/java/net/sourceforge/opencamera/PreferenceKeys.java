@@ -235,6 +235,14 @@ public class PreferenceKeys {
     	return "preference_save_location_saf";
     }
 
+    public static String getEncryptPreferenceKey() {
+        return "preference_encrypt";
+    }
+
+    public static String getEncryptionKeyKey() {
+        return "preference_encryption_key";
+    }
+
     public static String getSavePhotoPrefixPreferenceKey() {
     	return "preference_save_photo_prefix";
     }
