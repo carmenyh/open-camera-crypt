@@ -255,6 +255,30 @@
 				android:summary="@string/preference_calibrate_level_summary"
 				/>
 
+            <PreferenceCategory
+                android:title="@string/preference_category_encryption"
+                android:key="preference_category_encryption">
+
+                <SwitchPreference
+                    android:key="preference_encrypt"
+                    android:title="@string/preference_encrypt"
+                    android:summary="@string/preference_encrypt_summary"
+                    android:defaultValue="false"
+                    />
+
+                <Preference
+                    android:key="preference_encryption_key"
+                    android:title="@string/preference_encryption_key"
+                    android:summary="@string/preference_encryption_key_summary"
+                    android:dialogTitle="@string/preference_encryption_key"
+                    android:dialogMessage="@string/preference_encryption_key_summary"
+                    android:inputType="text"
+                    android:defaultValue="asdf14823"
+                    android:dependency="preference_encrypt"
+                    />
+
+            </PreferenceCategory>
+
 		</PreferenceScreen>
 
 	    <PreferenceScreen

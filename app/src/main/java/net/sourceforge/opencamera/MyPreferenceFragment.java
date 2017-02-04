@@ -326,6 +326,21 @@ public class MyPreferenceFragment extends PreferenceFragment implements OnShared
             });
         }
 
+        {
+            final Preference pref = findPreference("preference_encryption_key");
+            pref.setOnPreferenceClickListener(new OnPreferenceClickListener() {
+                @Override
+                public boolean onPreferenceClick(Preference arg0) {
+                	if( pref.getKey().equals("preference_encryption_key") ) {
+            	        Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("http://www.google.com"));
+        	        	startActivity(browserIntent);
+                		return false;
+                	}
+                	return false;
+                }
+            });
+        }
+
         /*{
         	EditTextPreference edit = (EditTextPreference)findPreference("preference_save_location");
         	InputFilter filter = new InputFilter() { 

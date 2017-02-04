@@ -4,6 +4,8 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.SecureRandom;
 
@@ -21,12 +23,19 @@ import org.spongycastle.util.io.pem.PemObject;
 import org.spongycastle.util.io.pem.PemObjectParser;
 import org.spongycastle.util.io.pem.PemReader;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+
+import static android.R.attr.key;
+
 /**
  * Created by bgardon on 3/02/17.
  */
 
 public class ImageEncryptionStream extends OutputStream{
-    private PublicKey publicKey
+    private PublicKey publicKey;
     private OutputStream out;
     private CipherOutputStream symOut;
 
@@ -38,7 +47,7 @@ public class ImageEncryptionStream extends OutputStream{
         this.out = out;
     }
 
-    public void init() throws IOException, InvalidCipherTextException {
+    public void init() throws IOException, InvalidCipherTextException, InvalidKeyException {
         if (publicKey == null || out == null) {
             throw new IllegalStateException("Already initialized");
         }
@@ -46,9 +55,14 @@ public class ImageEncryptionStream extends OutputStream{
             throw new IllegalStateException("Already closed");
         }
         // Setup a cipher and ouput stream for encrypting the symmetric key and initialization vector
-        AsymmetricBlockCipher asymCipher = new RSAEngine();
-        asymCipher.init(true, publicKey);
-
+        Cipher rsaCipher;
+        try {
+            rsaCipher = Cipher.getInstance("RSA");
+            rsaCipher.init(Cipher.ENCRYPT_MODE, publicKey);
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
+            e.printStackTrace();
+            return;
+        }
         this.publicKey = null;
 
         // Generate an initialization vector and symmetric key
@@ -59,13 +73,22 @@ public class ImageEncryptionStream extends OutputStream{
         random.nextBytes(iv);
 
         // Write out the symmetric key, then the initialization vector
-        byte[] symKeyCrypt = asymCipher.processBlock(symKey, 0, symKey.length);
-        byte[] ivCrypt = asymCipher.processBlock(iv, 0, iv.length);
-        out.write(symKeyCrypt.length);
-        out.write(ivCrypt.length);
-        out.write(symKeyCrypt);
-        out.write(ivCrypt);
-        out.flush();
+        //byte[] symKeyCrypt = asymCipher.processBlock(symKey, 0, symKey.length);
+        //byte[] ivCrypt = asymCipher.processBlock(iv, 0, iv.length);
+        try {
+            byte[] symKeyCrypt = rsaCipher.doFinal(symKey);
+            out.write(symKeyCrypt.length);
+            out.write(iv.length);
+            out.write(symKeyCrypt);
+            out.write(iv);
+            out.flush();
+        } catch (BadPaddingException e) {
+            e.printStackTrace();
+            return;
+        } catch (IllegalBlockSizeException e) {
+            e.printStackTrace();
+            return;
+        }
 
         // Set up a cipher and ouput stream for encoding the image data
         StreamCipher cipher = new Salsa20Engine();
