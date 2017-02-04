@@ -11,6 +11,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.security.InvalidKeyException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -39,6 +40,8 @@ import android.media.Image;
 import android.net.Uri;
 import android.os.Build;
 import android.util.Log;
+
+import org.spongycastle.crypto.InvalidCipherTextException;
 
 /** Handles the saving (and any required processing) of photos.
  */
@@ -1117,7 +1120,13 @@ public class ImageSaver extends Thread {
                 OutputStream outputStream = new FileOutputStream(picFile);
                 boolean shouldEncrypt = main_activity.getEncryptor().isEncryptionOn();
                 if (shouldEncrypt) {
-                    outputStream = main_activity.getEncryptor().getEncryptionStream(outputStream);
+                    try {
+                        outputStream = main_activity.getEncryptor().getEncryptionStream(outputStream);
+                    } catch (InvalidCipherTextException e) {
+                        e.printStackTrace();
+                    } catch (InvalidKeyException e) {
+                        e.printStackTrace();
+                    }
                 }
 				try {
 		            if( bitmap != null ) {
@@ -1490,7 +1499,13 @@ public class ImageSaver extends Thread {
     		}
             boolean shouldEncrypt = main_activity.getEncryptor().isEncryptionOn();
             if (shouldEncrypt) {
-                output = main_activity.getEncryptor().getEncryptionStream(output);
+                try {
+                    output = main_activity.getEncryptor().getEncryptionStream(output);
+                } catch (InvalidCipherTextException e) {
+                    e.printStackTrace();
+                } catch (InvalidKeyException e) {
+                    e.printStackTrace();
+                }
             }
             dngCreator.writeImage(output, image);
     		image.close();

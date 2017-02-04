@@ -6,8 +6,11 @@ import android.preference.PreferenceManager;
 
 import net.sourceforge.opencamera.PreferenceKeys;
 
+import org.spongycastle.crypto.InvalidCipherTextException;
+
 import java.io.IOException;
 import java.io.OutputStream;
+import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
@@ -47,19 +50,19 @@ public class Encryptor {
     }
 
 //    public String getEncryptedPhotoSaveLocation() {
-//        return this.preferences.getString(PreferenceKeys.getEncryptionSaveLocationKey(), "");
+//        return this.preferences.getString(PreferenceKeys.getEncryptionSaveLocationKey(), this.preferences.getString(PreferenceKeys.getSaveLocationKey(), ""));
 //    }
 
-    public ImageEncryptionStream getEncryptionStream(OutputStream out) {
+    public ImageEncryptionStream getEncryptionStream(OutputStream out) throws InvalidKeyException, IOException, InvalidCipherTextException {
         try {
             this.updatePublicKey();
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
         } catch (InvalidKeySpecException e) {
             e.printStackTrace();
         }
-        return new ImageEncryptionStream(this.publicKey, out);
+        ImageEncryptionStream encryptionStream = new ImageEncryptionStream(this.publicKey, out);
+        encryptionStream.init();
+        return encryptionStream;
     }
 }
