@@ -35,6 +35,8 @@ import static android.R.attr.key;
  */
 
 public class ImageEncryptionStream extends OutputStream{
+    static public String FILE_EXTENSION = "encrypted";
+
     private PublicKey publicKey;
     private OutputStream out;
     private CipherOutputStream symOut;

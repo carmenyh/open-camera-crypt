@@ -668,7 +668,10 @@ public class ImageSaver extends Thread {
 			if( MyDebug.LOG )
 				Log.d(TAG, "base_image_id: " + base_image_id);
 			String suffix = request.jpeg_images.size() == 1 ? "_DRO" : "_HDR";
-			success = saveSingleImageNow(request, request.jpeg_images.get(base_image_id), hdr_bitmap, suffix, true, true);
+
+            boolean update_thumbnail = !request.encrypt;
+            boolean share_image = !request.encrypt;
+			success = saveSingleImageNow(request, request.jpeg_images.get(base_image_id), hdr_bitmap, suffix, update_thumbnail, share_image);
 			if( MyDebug.LOG && !success )
 				Log.e(TAG, "saveSingleImageNow failed for hdr image");
     		if( MyDebug.LOG ) {
@@ -687,8 +690,9 @@ public class ImageSaver extends Thread {
 					// note, even if one image fails, we still try saving the other images - might as well give the user as many images as we can...
 					byte [] image = request.jpeg_images.get(i);
 					String filename_suffix = "_EXP" + i;
-					boolean share_image = i == mid_image;
-					if( !saveSingleImageNow(request, image, null, filename_suffix, true, share_image) ) {
+                    boolean update_thumbnail = !request.encrypt;
+					boolean share_image = (i == mid_image) & !request.encrypt;
+					if( !saveSingleImageNow(request, image, null, filename_suffix, update_thumbnail, share_image) ) {
 						if( MyDebug.LOG )
 							Log.e(TAG, "saveSingleImageNow failed for exposure image");
 						success = false; // require all images to be saved in order for success to be true (used for pausing the preview)
@@ -696,7 +700,9 @@ public class ImageSaver extends Thread {
 				}
 			}
 			else {
-				success = saveSingleImageNow(request, request.jpeg_images.get(0), null, "", true, true);
+                boolean update_thumbnail = !request.encrypt;
+                boolean share_image = !request.encrypt;
+				success = saveSingleImageNow(request, request.jpeg_images.get(0), null, "", update_thumbnail, share_image);
 			}
 		}
 
