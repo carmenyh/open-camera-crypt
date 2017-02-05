@@ -7,6 +7,7 @@ import android.preference.PreferenceManager;
 import net.sourceforge.opencamera.PreferenceKeys;
 
 import org.spongycastle.crypto.InvalidCipherTextException;
+import org.spongycastle.crypto.io.CipherOutputStream;
 import org.spongycastle.util.io.pem.PemObject;
 import org.spongycastle.util.io.pem.PemWriter;
 
@@ -73,7 +74,13 @@ public class Encryptor {
 //        return this.preferences.getString(PreferenceKeys.getEncryptionSaveLocationKey(), this.preferences.getString(PreferenceKeys.getSaveLocationKey(), ""));
 //    }
 
-    public ImageEncryptionStream getEncryptionStream(OutputStream out) throws InvalidKeyException, IOException, InvalidCipherTextException {
+    public class CipherCreationFailedException extends RuntimeException {
+        public CipherCreationFailedException(Throwable t) {
+            super(t);
+        }
+    }
+
+    public ImageEncryptionStream getEncryptionStream(OutputStream out) throws IOException, CipherCreationFailedException {
         try {
             this.updatePublicKey();
         } catch (NoSuchAlgorithmException e) {
@@ -82,7 +89,13 @@ public class Encryptor {
             e.printStackTrace();
         }
         ImageEncryptionStream encryptionStream = new ImageEncryptionStream(this.publicKey, out);
-        encryptionStream.init();
+        try {
+            encryptionStream.init();
+        } catch (InvalidCipherTextException e) {
+            throw new CipherCreationFailedException(e);
+        } catch (InvalidKeyException e) {
+            throw new CipherCreationFailedException(e);
+        }
         return encryptionStream;
     }
 }
