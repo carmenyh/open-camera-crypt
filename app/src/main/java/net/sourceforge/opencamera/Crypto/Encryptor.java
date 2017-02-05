@@ -28,6 +28,8 @@ import java.security.spec.InvalidKeySpecException;
  */
 
 public class Encryptor {
+    static public String FILE_EXTENSION = "encrypted";
+
     private Context context;
     private SharedPreferences preferences;
     private PublicKey publicKey;

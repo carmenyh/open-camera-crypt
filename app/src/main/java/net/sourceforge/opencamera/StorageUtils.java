@@ -34,6 +34,8 @@ import android.provider.MediaStore.Video.VideoColumns;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
 
+import net.sourceforge.opencamera.Crypto.Encryptor;
+
 /** Provides access to the filesystem. Supports both standard and Storage
  *  Access Framework.
  */
@@ -42,6 +44,7 @@ public class StorageUtils {
 
     static final int MEDIA_TYPE_IMAGE = 1;
     static final int MEDIA_TYPE_VIDEO = 2;
+	static final int MEDIA_TYPE_ENCRYPTED_IMAGE = 3;
 
 	private final Context context;
     private Uri last_media_scanned;
@@ -468,6 +471,10 @@ public class StorageUtils {
 	File createOutputMediaFile(int type, String suffix, String extension, Date current_date) throws IOException {
     	File mediaStorageDir = getImageFolder();
 
+		if (type == MEDIA_TYPE_ENCRYPTED_IMAGE) {
+			extension = extension + "." + Encryptor.FILE_EXTENSION;
+		}
+
         // Create the storage directory if it does not exist
         if( !mediaStorageDir.exists() ) {
             if( !mediaStorageDir.mkdirs() ) {
@@ -537,6 +544,9 @@ public class StorageUtils {
 		}
 		else if( type == MEDIA_TYPE_VIDEO ) {
 			mimeType = "video/mp4";
+		} else if( type == MEDIA_TYPE_ENCRYPTED_IMAGE ) {
+			mimeType = "text/plain";
+			extension = extension + "." + Encryptor.FILE_EXTENSION;
 		}
 		else {
 			// throw exception as this is a programming error

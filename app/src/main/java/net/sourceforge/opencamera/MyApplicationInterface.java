@@ -1770,7 +1770,7 @@ public class MyApplicationInterface implements ApplicationInterface {
 		if( MyDebug.LOG )
 			Log.d(TAG, "sample_factor: " + sample_factor);
 
-		boolean encrypt = main_activity.getEncryptor().isEncryptionOn();
+		boolean encrypt = main_activity.getEncryptor().isEncryptionOn() & !image_capture_intent;
 		store_geo_direction = store_geo_direction & !encrypt;
 		geo_direction = store_geo_direction ? geo_direction : 0.0;
 		store_location = store_location & !encrypt;

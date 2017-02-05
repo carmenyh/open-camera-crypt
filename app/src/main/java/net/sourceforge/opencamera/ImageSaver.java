@@ -1057,6 +1057,9 @@ public class ImageSaver extends Thread {
 		int exif_orientation_s = ExifInterface.ORIENTATION_UNDEFINED;
 		File picFile = null;
 		Uri saveUri = null; // if non-null, then picFile is a temporary file, which afterwards we should redirect to saveUri
+
+        int mediaType = request.encrypt ? StorageUtils.MEDIA_TYPE_IMAGE : StorageUtils.MEDIA_TYPE_ENCRYPTED_IMAGE;
+
         try {
 			if( image_capture_intent ) {
     			if( MyDebug.LOG )
@@ -1117,10 +1120,10 @@ public class ImageSaver extends Thread {
     			}
 			}
 			else if( storageUtils.isUsingSAF() ) {
-				saveUri = storageUtils.createOutputMediaFileSAF(StorageUtils.MEDIA_TYPE_IMAGE, filename_suffix, "jpg", current_date);
+				saveUri = storageUtils.createOutputMediaFileSAF(mediaType, filename_suffix, "jpg", current_date);
 			}
 			else {
-    			picFile = storageUtils.createOutputMediaFile(StorageUtils.MEDIA_TYPE_IMAGE, filename_suffix, "jpg", current_date);
+    			picFile = storageUtils.createOutputMediaFile(mediaType, filename_suffix, "jpg", current_date);
 	    		if( MyDebug.LOG )
 	    			Log.d(TAG, "save to: " + picFile.getAbsolutePath());
 			}
@@ -1493,15 +1496,17 @@ public class ImageSaver extends Thread {
     		File picFile = null;
     		Uri saveUri = null;
 
+            int mediaType = encrypt ? StorageUtils.MEDIA_TYPE_IMAGE : StorageUtils.MEDIA_TYPE_ENCRYPTED_IMAGE;
+
 			if( storageUtils.isUsingSAF() ) {
-				saveUri = storageUtils.createOutputMediaFileSAF(StorageUtils.MEDIA_TYPE_IMAGE, "", "dng", current_date);
+				saveUri = storageUtils.createOutputMediaFileSAF(mediaType, "", "dng", current_date);
 	    		if( MyDebug.LOG )
 	    			Log.d(TAG, "saveUri: " + saveUri);
 	    		// When using SAF, we don't save to a temp file first (unlike for JPEGs). Firstly we don't need to modify Exif, so don't
 	    		// need a real file; secondly copying to a temp file is much slower for RAW.
 			}
 			else {
-        		picFile = storageUtils.createOutputMediaFile(StorageUtils.MEDIA_TYPE_IMAGE, "", "dng", current_date);
+        		picFile = storageUtils.createOutputMediaFile(mediaType, "", "dng", current_date);
 	    		if( MyDebug.LOG )
 	    			Log.d(TAG, "save to: " + picFile.getAbsolutePath());
 			}
