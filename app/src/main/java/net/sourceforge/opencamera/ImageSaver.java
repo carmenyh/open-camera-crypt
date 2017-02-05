@@ -1,6 +1,7 @@
 package net.sourceforge.opencamera;
 
 import net.sourceforge.opencamera.CameraController.CameraController;
+import net.sourceforge.opencamera.Crypto.Encryptor;
 import net.sourceforge.opencamera.Crypto.ImageEncryptionStream;
 import net.sourceforge.opencamera.Crypto.AsymmetricKeyReader;
 
@@ -1009,6 +1010,12 @@ public class ImageSaver extends Thread {
 			throw new RuntimeException();
 		}
     	long time_s = System.currentTimeMillis();
+
+        boolean shouldEncrypt = main_activity.getEncryptor().isEncryptionOn();
+        if (shouldEncrypt) {
+            update_thumbnail = false;
+            share_image = false;
+        }
 		
 		// unpack:
 		final boolean image_capture_intent = request.image_capture_intent;
@@ -1118,13 +1125,10 @@ public class ImageSaver extends Thread {
 			
 			if( picFile != null ) {
                 OutputStream outputStream = new FileOutputStream(picFile);
-                boolean shouldEncrypt = main_activity.getEncryptor().isEncryptionOn();
                 if (shouldEncrypt) {
                     try {
                         outputStream = main_activity.getEncryptor().getEncryptionStream(outputStream);
-                    } catch (InvalidCipherTextException e) {
-                        e.printStackTrace();
-                    } catch (InvalidKeyException e) {
+                    } catch (Encryptor.CipherCreationFailedException e) {
                         e.printStackTrace();
                     }
                 }
@@ -1468,6 +1472,9 @@ public class ImageSaver extends Thread {
 				Log.e(TAG, "RAW requires LOLLIPOP or higher");
 			return false;
 		}
+
+        boolean shouldEncrypt = main_activity.getEncryptor().isEncryptionOn();
+
 		StorageUtils storageUtils = main_activity.getStorageUtils();
 		boolean success = false;
 
@@ -1497,13 +1504,11 @@ public class ImageSaver extends Thread {
     		else {
     		    output = main_activity.getContentResolver().openOutputStream(saveUri); // TODO Replace this with an encrypted stream if appropriate
     		}
-            boolean shouldEncrypt = main_activity.getEncryptor().isEncryptionOn();
+
             if (shouldEncrypt) {
                 try {
                     output = main_activity.getEncryptor().getEncryptionStream(output);
-                } catch (InvalidCipherTextException e) {
-                    e.printStackTrace();
-                } catch (InvalidKeyException e) {
+                } catch (Encryptor.CipherCreationFailedException e) {
                     e.printStackTrace();
                 }
             }
