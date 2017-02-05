@@ -104,6 +104,7 @@ public class ImageSaver extends Thread {
 		final boolean store_geo_direction;
 		final double geo_direction;
 		int sample_factor = 1; // sampling factor for thumbnail, higher means lower quality
+        final boolean encrypt;
 		
 		Request(Type type,
 			boolean is_hdr,
@@ -118,7 +119,9 @@ public class ImageSaver extends Thread {
 			Date current_date,
 			String preference_stamp, String preference_textstamp, int font_size, int color, String pref_style, String preference_stamp_dateformat, String preference_stamp_timeformat, String preference_stamp_gpsformat,
 			boolean store_location, Location location, boolean store_geo_direction, double geo_direction,
-			int sample_factor) {
+			int sample_factor,
+            boolean encrypt) {
+
 			this.type = type;
 			this.is_hdr = is_hdr;
 			this.save_expo = save_expo;
@@ -147,6 +150,7 @@ public class ImageSaver extends Thread {
 			this.store_geo_direction = store_geo_direction;
 			this.geo_direction = geo_direction;
 			this.sample_factor = sample_factor;
+            this.encrypt = encrypt;
 		}
 	}
 
@@ -184,7 +188,7 @@ public class ImageSaver extends Thread {
 				if( request.type == Request.Type.RAW ) {
 					if( MyDebug.LOG )
 						Log.d(TAG, "request is raw");
-					success = saveImageNowRaw(request.dngCreator, request.image, request.current_date);
+					success = saveImageNowRaw(request.dngCreator, request.image, request.current_date, request.encrypt);
 				}
 				else if( request.type == Request.Type.JPEG ) {
 					if( MyDebug.LOG )
@@ -244,7 +248,8 @@ public class ImageSaver extends Thread {
 			Date current_date,
 			String preference_stamp, String preference_textstamp, int font_size, int color, String pref_style, String preference_stamp_dateformat, String preference_stamp_timeformat, String preference_stamp_gpsformat,
 			boolean store_location, Location location, boolean store_geo_direction, double geo_direction,
-			int sample_factor) {
+			int sample_factor,
+            boolean encrypt) {
 		if( MyDebug.LOG ) {
 			Log.d(TAG, "saveImageJpeg");
 			Log.d(TAG, "do_in_background? " + do_in_background);
@@ -264,7 +269,8 @@ public class ImageSaver extends Thread {
 				current_date,
 				preference_stamp, preference_textstamp, font_size, color, pref_style, preference_stamp_dateformat, preference_stamp_timeformat, preference_stamp_gpsformat,
 				store_location, location, store_geo_direction, geo_direction,
-				sample_factor);
+				sample_factor,
+                encrypt);
 	}
 
 	/** Saves a RAW photo.
@@ -275,7 +281,7 @@ public class ImageSaver extends Thread {
 	 */
 	boolean saveImageRaw(boolean do_in_background,
 			DngCreator dngCreator, Image image,
-			Date current_date) {
+			Date current_date, boolean encrypt) {
 		if( MyDebug.LOG ) {
 			Log.d(TAG, "saveImageRaw");
 			Log.d(TAG, "do_in_background? " + do_in_background);
@@ -294,7 +300,8 @@ public class ImageSaver extends Thread {
 				current_date,
 				null, null, 0, 0, null, null, null, null,
 				false, null, false, 0.0,
-				1);
+				1,
+                encrypt);
 	}
 
 	/** Internal saveImage method to handle both JPEG and RAW.
@@ -313,7 +320,8 @@ public class ImageSaver extends Thread {
 			Date current_date,
 			String preference_stamp, String preference_textstamp, int font_size, int color, String pref_style, String preference_stamp_dateformat, String preference_stamp_timeformat, String preference_stamp_gpsformat,
 			boolean store_location, Location location, boolean store_geo_direction, double geo_direction,
-			int sample_factor) {
+			int sample_factor,
+            boolean encrypt) {
 		if( MyDebug.LOG ) {
 			Log.d(TAG, "saveImage");
 			Log.d(TAG, "do_in_background? " + do_in_background);
@@ -335,7 +343,8 @@ public class ImageSaver extends Thread {
 				current_date,
 				preference_stamp, preference_textstamp, font_size, color, pref_style, preference_stamp_dateformat, preference_stamp_timeformat, preference_stamp_gpsformat,
 				store_location, location, store_geo_direction, geo_direction,
-				sample_factor);
+				sample_factor,
+                encrypt);
 
 		if( do_in_background ) {
 			if( MyDebug.LOG )
@@ -359,7 +368,8 @@ public class ImageSaver extends Thread {
 					null,
 					null, null, 0, 0, null, null, null, null,
 					false, null, false, 0.0,
-					1);
+					1,
+                    false);
 				if( MyDebug.LOG )
 					Log.d(TAG, "add dummy request");
 				addRequest(dummy_request);
@@ -370,7 +380,7 @@ public class ImageSaver extends Thread {
 			// wait for queue to be empty
 			waitUntilDone();
 			if( is_raw ) {
-				success = saveImageNowRaw(request.dngCreator, request.image, request.current_date);
+				success = saveImageNowRaw(request.dngCreator, request.image, request.current_date, request.encrypt);
 			}
 			else {
 				success = saveImageNow(request);
@@ -1010,12 +1020,6 @@ public class ImageSaver extends Thread {
 			throw new RuntimeException();
 		}
     	long time_s = System.currentTimeMillis();
-
-        boolean shouldEncrypt = main_activity.getEncryptor().isEncryptionOn();
-        if (shouldEncrypt) {
-            update_thumbnail = false;
-            share_image = false;
-        }
 		
 		// unpack:
 		final boolean image_capture_intent = request.image_capture_intent;
@@ -1125,7 +1129,7 @@ public class ImageSaver extends Thread {
 			
 			if( picFile != null ) {
                 OutputStream outputStream = new FileOutputStream(picFile);
-                if (shouldEncrypt) {
+                if (request.encrypt) {
                     try {
                         outputStream = main_activity.getEncryptor().getEncryptionStream(outputStream);
                     } catch (Encryptor.CipherCreationFailedException e) {
@@ -1463,7 +1467,7 @@ public class ImageSaver extends Thread {
 	/** May be run in saver thread or picture callback thread (depending on whether running in background).
 	 */
 	@TargetApi(Build.VERSION_CODES.LOLLIPOP)
-	private boolean saveImageNowRaw(DngCreator dngCreator, Image image, Date current_date) {
+	private boolean saveImageNowRaw(DngCreator dngCreator, Image image, Date current_date, boolean encrypt) {
 		if( MyDebug.LOG )
 			Log.d(TAG, "saveImageNowRaw");
 
@@ -1472,8 +1476,6 @@ public class ImageSaver extends Thread {
 				Log.e(TAG, "RAW requires LOLLIPOP or higher");
 			return false;
 		}
-
-        boolean shouldEncrypt = main_activity.getEncryptor().isEncryptionOn();
 
 		StorageUtils storageUtils = main_activity.getStorageUtils();
 		boolean success = false;
@@ -1505,7 +1507,7 @@ public class ImageSaver extends Thread {
     		    output = main_activity.getContentResolver().openOutputStream(saveUri); // TODO Replace this with an encrypted stream if appropriate
     		}
 
-            if (shouldEncrypt) {
+            if (encrypt) {
                 try {
                     output = main_activity.getEncryptor().getEncryptionStream(output);
                 } catch (Encryptor.CipherCreationFailedException e) {
