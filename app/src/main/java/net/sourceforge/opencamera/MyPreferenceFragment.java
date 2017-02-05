@@ -332,6 +332,18 @@ public class MyPreferenceFragment extends PreferenceFragment implements OnShared
                 @Override
                 public boolean onPreferenceClick(Preference arg0) {
                 	if( pref.getKey().equals("preference_encryption_key") ) {
+//						Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+//						intent.setType("*/*");      //all files
+//						//intent.setType("text/xml");   //XML file only
+//						intent.addCategory(Intent.CATEGORY_OPENABLE);
+//
+//						int fileSelectCode = 0;
+//						try {
+//							 startActivityForResult(Intent.createChooser(intent, "Select a pem file"), fileSelectCode);
+//						} catch (android.content.ActivityNotFoundException ex) {
+//							ex.printStackTrace();
+//						}
+
             	        String filepath = "/my/new/filepath/key" + new java.util.Random().nextInt(20) + ".pem";
 
                         pref.setSummary(filepath);

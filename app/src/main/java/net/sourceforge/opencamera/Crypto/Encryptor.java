@@ -7,11 +7,18 @@ import android.preference.PreferenceManager;
 import net.sourceforge.opencamera.PreferenceKeys;
 
 import org.spongycastle.crypto.InvalidCipherTextException;
+import org.spongycastle.util.io.pem.PemObject;
+import org.spongycastle.util.io.pem.PemWriter;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.security.InvalidKeyException;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 
@@ -42,7 +49,20 @@ public class Encryptor {
     }
 
     public void updatePublicKey() throws NoSuchAlgorithmException, IOException, InvalidKeySpecException {
-        this.publicKey = AsymmetricKeyReader.readKey(this.getPublicKeyFilename());
+        //TODO uncomment this line and get rid of the other stuff
+        //this.publicKey = AsymmetricKeyReader.readKey(this.getPublicKeyFilename());
+
+        KeyPairGenerator kg;
+        try {
+            kg = KeyPairGenerator.getInstance("RSA");
+            kg.initialize(512);
+            KeyPair kp = kg.generateKeyPair();
+            PublicKey publickey = kp.getPublic();
+            this.publicKey = publickey;
+        } catch (NoSuchAlgorithmException e1) {
+            // TODO Auto-generated catch block
+            e1.printStackTrace();
+        }
     }
 
     public PublicKey getPublicKey() {

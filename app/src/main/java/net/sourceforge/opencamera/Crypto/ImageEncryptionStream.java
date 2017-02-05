@@ -51,9 +51,6 @@ public class ImageEncryptionStream extends OutputStream{
         if (publicKey == null || out == null) {
             throw new IllegalStateException("Already initialized");
         }
-        if (symOut == null) {
-            throw new IllegalStateException("Already closed");
-        }
         // Setup a cipher and ouput stream for encrypting the symmetric key and initialization vector
         Cipher rsaCipher;
         try {
@@ -69,7 +66,7 @@ public class ImageEncryptionStream extends OutputStream{
         SecureRandom random = new SecureRandom();
         byte[] symKey = new byte[32];
         random.nextBytes(symKey);
-        byte[] iv = new byte[32];
+        byte[] iv = new byte[8];
         random.nextBytes(iv);
 
         // Write out the symmetric key, then the initialization vector

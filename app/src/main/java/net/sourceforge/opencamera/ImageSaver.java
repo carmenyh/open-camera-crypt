@@ -1150,7 +1150,7 @@ public class ImageSaver extends Thread {
 	    		if( saveUri == null ) { // if saveUri is non-null, then we haven't succeeded until we've copied to the saveUri
 	    			success = true;
 	    		}
-	            if( picFile != null ) { // TODO we should be selective about storing exif data and / or encrypt it
+	            if( picFile != null) { // TODO we should be selective about storing exif data and / or encrypt it
 	            	if( bitmap != null ) {
 	            		// need to update EXIF data!
         	    		if( MyDebug.LOG )
