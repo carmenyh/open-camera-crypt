@@ -72,9 +72,9 @@ public class Encryptor {
         return publicKey;
     }
 
-//    public String getEncryptedPhotoSaveLocation() {
-//        return this.preferences.getString(PreferenceKeys.getEncryptionSaveLocationKey(), this.preferences.getString(PreferenceKeys.getSaveLocationKey(), ""));
-//    }
+    public String getEncryptedImageFolder() {
+        return this.preferences.getString("sjdnfjhjkdhdjkn"/*PreferenceKeys.getEncryptedImageFolder()*/, this.preferences.getString(PreferenceKeys.getLocationPreferenceKey(), ""));
+    }
 
     public class CipherCreationFailedException extends RuntimeException {
         public CipherCreationFailedException(Throwable t) {

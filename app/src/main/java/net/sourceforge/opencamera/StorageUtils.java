@@ -13,7 +13,6 @@ import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.ContentUris;
 //import android.content.ContentValues;
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -46,14 +45,14 @@ public class StorageUtils {
     static final int MEDIA_TYPE_VIDEO = 2;
 	static final int MEDIA_TYPE_ENCRYPTED_IMAGE = 3;
 
-	private final Context context;
+	private final MainActivity main_activity;
     private Uri last_media_scanned;
 
 	// for testing:
 	public volatile boolean failed_to_scan;
 	
-	StorageUtils(Context context) {
-		this.context = context;
+	StorageUtils(MainActivity main_activity) {
+		this.main_activity = main_activity;
 	}
 	
 	Uri getLastMediaScanned() {
@@ -82,14 +81,14 @@ public class StorageUtils {
 		}
     	else if( is_new_picture ) {
     		// note, we reference the string directly rather than via Camera.ACTION_NEW_PICTURE, as the latter class is now deprecated - but we still need to broadcast the string for other apps
-    		context.sendBroadcast(new Intent( "android.hardware.action.NEW_PICTURE" , uri));
+    		main_activity.sendBroadcast(new Intent( "android.hardware.action.NEW_PICTURE" , uri));
     		// for compatibility with some apps - apparently this is what used to be broadcast on Android?
-    		context.sendBroadcast(new Intent("com.android.camera.NEW_PICTURE", uri));
+    		main_activity.sendBroadcast(new Intent("com.android.camera.NEW_PICTURE", uri));
 
  			if( MyDebug.LOG ) // this code only used for debugging/logging
  			{
     	        String[] CONTENT_PROJECTION = { Images.Media.DATA, Images.Media.DISPLAY_NAME, Images.Media.MIME_TYPE, Images.Media.SIZE, Images.Media.DATE_TAKEN, Images.Media.DATE_ADDED }; 
-    	        Cursor c = context.getContentResolver().query(uri, CONTENT_PROJECTION, null, null, null); 
+    	        Cursor c = main_activity.getContentResolver().query(uri, CONTENT_PROJECTION, null, null, null);
     	        if( c == null ) { 
 		 			if( MyDebug.LOG )
 		 				Log.e(TAG, "Couldn't resolve given uri [1]: " + uri); 
@@ -117,7 +116,7 @@ public class StorageUtils {
  				// whilst we don't yet correct for that bug, the more immediate problem is that it also messes up the DATE_TAKEN field in the media store, which messes up Gallery apps
  				// so for now, we correct it based on the DATE_ADDED value.
     	        String[] CONTENT_PROJECTION = { Images.Media.DATE_ADDED }; 
-    	        Cursor c = context.getContentResolver().query(uri, CONTENT_PROJECTION, null, null, null); 
+    	        Cursor c = main_activity.getContentResolver().query(uri, CONTENT_PROJECTION, null, null, null);
     	        if( c == null ) { 
 		 			if( MyDebug.LOG )
 		 				Log.e(TAG, "Couldn't resolve given uri [1]: " + uri); 
@@ -132,16 +131,16 @@ public class StorageUtils {
 		 				Log.e(TAG, "replace date_taken with date_added: " + date_added); 
 					ContentValues values = new ContentValues(); 
 					values.put(Images.Media.DATE_TAKEN, date_added*1000); 
-					context.getContentResolver().update(uri, values, null, null);
+					main_activity.getContentResolver().update(uri, values, null, null);
         	        c.close(); 
     	        }
  			}*/
     	}
     	else if( is_new_video ) {
-    		context.sendBroadcast(new Intent("android.hardware.action.NEW_VIDEO", uri));
+    		main_activity.sendBroadcast(new Intent("android.hardware.action.NEW_VIDEO", uri));
 
     		/*String[] CONTENT_PROJECTION = { Video.Media.DURATION }; 
-	        Cursor c = context.getContentResolver().query(uri, CONTENT_PROJECTION, null, null, null); 
+	        Cursor c = main_activity.getContentResolver().query(uri, CONTENT_PROJECTION, null, null, null);
 	        if( c == null ) { 
 	 			if( MyDebug.LOG )
 	 				Log.e(TAG, "Couldn't resolve given uri [1]: " + uri); 
@@ -156,7 +155,7 @@ public class StorageUtils {
 	 				Log.e(TAG, "replace duration: " + duration); 
 				ContentValues values = new ContentValues(); 
 				values.put(Video.Media.DURATION, 1000); 
-				context.getContentResolver().update(uri, values, null, null);
+				main_activity.getContentResolver().update(uri, values, null, null);
     	        c.close(); 
 	        }*/
     	}
@@ -180,10 +179,10 @@ public class StorageUtils {
         //values.put(ImageColumns.DATA, "/storage/emulated/0/DCIM/OpenCamera/blah.dng");
         Uri uri = null;
         try {
-    		uri = context.getContentResolver().insert(Images.Media.EXTERNAL_CONTENT_URI, values); 
+    		uri = main_activity.getContentResolver().insert(Images.Media.EXTERNAL_CONTENT_URI, values);
  			if( MyDebug.LOG )
  				Log.d(TAG, "inserted media uri: " + uri);
-    		context.sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, uri));
+    		main_activity.sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, uri));
         }
         catch (Throwable th) { 
 	        // This can happen when the external volume is already mounted, but 
@@ -217,11 +216,11 @@ public class StorageUtils {
     	}
     	else {
         	// both of these work fine, but using MediaScannerConnection.scanFile() seems to be preferred over sending an intent
-    		//context.sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(file)));
+    		//main_activity.sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(file)));
  			failed_to_scan = true; // set to true until scanned okay
  			if( MyDebug.LOG )
  				Log.d(TAG, "failed_to_scan set to true");
-        	MediaScannerConnection.scanFile(context, new String[] { file.getAbsolutePath() }, null,
+        	MediaScannerConnection.scanFile(main_activity, new String[] { file.getAbsolutePath() }, null,
         			new MediaScannerConnection.OnScanCompletedListener() {
 					public void onScanCompleted(String path, Uri uri) {
     		 			failed_to_scan = false;
@@ -238,7 +237,7 @@ public class StorageUtils {
 
     	    			// it seems caller apps seem to prefer the content:// Uri rather than one based on a File
 						// update for Android 7: seems that passing file uris is now restricted anyway, see https://code.google.com/p/android/issues/detail?id=203555
-    		 			Activity activity = (Activity)context;
+    		 			Activity activity = (Activity) main_activity;
     		 			String action = activity.getIntent().getAction();
     		 	        if( MediaStore.ACTION_VIDEO_CAPTURE.equals(action) ) {
     		    			if( MyDebug.LOG )
@@ -257,7 +256,7 @@ public class StorageUtils {
     boolean isUsingSAF() {
     	// check Android version just to be safe
         if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP ) {
-			SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
+			SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(main_activity);
 			if( sharedPreferences.getBoolean(PreferenceKeys.getUsingSAFPreferenceKey(), false) ) {
 				return true;
 			}
@@ -267,13 +266,13 @@ public class StorageUtils {
 
     // only valid if !isUsingSAF()
     String getSaveLocation() {
-		SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
+		SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(main_activity);
 		return sharedPreferences.getString(PreferenceKeys.getSaveLocationPreferenceKey(), "OpenCamera");
     }
     
     // only valid if isUsingSAF()
     String getSaveLocationSAF() {
-		SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
+		SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(main_activity);
 		return sharedPreferences.getString(PreferenceKeys.getSaveLocationSAFPreferenceKey(), "");
     }
 
@@ -418,7 +417,7 @@ public class StorageUtils {
 
 		Cursor cursor = null;
 		try {
-			cursor = this.context.getContentResolver().query(uri, projection, selection, selectionArgs,
+			cursor = this.main_activity.getContentResolver().query(uri, projection, selection, selectionArgs,
 					null);
 			if (cursor != null && cursor.moveToFirst()) {
 				final int column_index = cursor.getColumnIndexOrThrow(column);
@@ -437,7 +436,7 @@ public class StorageUtils {
         if( count > 0 ) {
             index = "_" + count; // try to find a unique filename
         }
-		SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
+		SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(main_activity);
 		boolean useZuluTime = sharedPreferences.getString(PreferenceKeys.getSaveZuluTimePreferenceKey(), "local").equals("zulu");
 		String timeStamp;
 		if( useZuluTime ) {
@@ -472,6 +471,7 @@ public class StorageUtils {
     	File mediaStorageDir = getImageFolder();
 
 		if (type == MEDIA_TYPE_ENCRYPTED_IMAGE) {
+			mediaStorageDir = getImageFolder(this.main_activity.getEncryptor().getEncryptedImageFolder());
 			extension = extension + "." + Encryptor.FILE_EXTENSION;
 		}
 
@@ -514,7 +514,7 @@ public class StorageUtils {
 			if( MyDebug.LOG )
 				Log.d(TAG, "docUri: " + docUri);
 			// note that DocumentsContract.createDocument will automatically append to the filename if it already exists
-			Uri fileUri = DocumentsContract.createDocument(context.getContentResolver(), docUri, mimeType, filename);
+			Uri fileUri = DocumentsContract.createDocument(main_activity.getContentResolver(), docUri, mimeType, filename);
 			if( MyDebug.LOG )
 				Log.d(TAG, "returned fileUri: " + fileUri);
 			if( fileUri == null )
@@ -544,10 +544,8 @@ public class StorageUtils {
 		}
 		else if( type == MEDIA_TYPE_VIDEO ) {
 			mimeType = "video/mp4";
-		} else if( type == MEDIA_TYPE_ENCRYPTED_IMAGE ) {
-			mimeType = "text/plain";
-			extension = extension + "." + Encryptor.FILE_EXTENSION;
 		}
+
 		else {
 			// throw exception as this is a programming error
 			if( MyDebug.LOG )
@@ -578,7 +576,7 @@ public class StorageUtils {
     private Media getLatestMedia(boolean video) {
 		if( MyDebug.LOG )
 			Log.d(TAG, "getLatestMedia: " + (video ? "video" : "images"));
-		if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED ) {
+		if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && ContextCompat.checkSelfPermission(main_activity, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED ) {
 			// needed for Android 6, in case users deny storage permission, otherwise we get java.lang.SecurityException from ContentResolver.query()
 			// see https://developer.android.com/training/permissions/requesting.html
 			// we now request storage permission before opening the camera, but keep this here just in case
@@ -600,7 +598,7 @@ public class StorageUtils {
 		String order = video ? VideoColumns.DATE_TAKEN + " DESC," + VideoColumns._ID + " DESC" : ImageColumns.DATE_TAKEN + " DESC," + ImageColumns._ID + " DESC";
 		Cursor cursor = null;
 		try {
-			cursor = context.getContentResolver().query(query, projection, selection, null, order);
+			cursor = main_activity.getContentResolver().query(query, projection, selection, null, order);
 			if( cursor != null && cursor.moveToFirst() ) {
 				if( MyDebug.LOG )
 					Log.d(TAG, "found: " + cursor.getCount());

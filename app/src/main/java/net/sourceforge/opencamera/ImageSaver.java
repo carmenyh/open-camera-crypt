@@ -1119,7 +1119,7 @@ public class ImageSaver extends Thread {
         			main_activity.finish();
     			}
 			}
-			else if( storageUtils.isUsingSAF() ) {
+			else if( storageUtils.isUsingSAF() && !request.encrypt) {
 				saveUri = storageUtils.createOutputMediaFileSAF(mediaType, filename_suffix, "jpg", current_date);
 			}
 			else {
@@ -1498,7 +1498,7 @@ public class ImageSaver extends Thread {
 
             int mediaType = encrypt ? StorageUtils.MEDIA_TYPE_IMAGE : StorageUtils.MEDIA_TYPE_ENCRYPTED_IMAGE;
 
-			if( storageUtils.isUsingSAF() ) {
+			if( storageUtils.isUsingSAF() && !encrypt ) {
 				saveUri = storageUtils.createOutputMediaFileSAF(mediaType, "", "dng", current_date);
 	    		if( MyDebug.LOG )
 	    			Log.d(TAG, "saveUri: " + saveUri);
