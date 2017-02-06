@@ -49,18 +49,20 @@ public class Encryptor {
 //    }
 
     public String getPublicKeyFilename() {
-        return this.preferences.getString(PreferenceKeys.getEncryptionInfoPreferenceKey(), "");
+        String res = this.preferences.getString(PreferenceKeys.getEncryptionInfoPreferenceKey(), "");
+        System.err.println(res);
+        return res;
     }
 
 
-    boolean keyGened = false;
+    // boolean keyGened = false;
     public void updatePublicKey() throws NoSuchAlgorithmException, IOException, InvalidKeySpecException {
-        if (!keyGened) {
-            KeyPair keys = KeyGen.generateKeys();
-            KeyGen.writeKeysToComputer(keys.getPublic(), this.getPublicKeyFilename() + "/pub.pem",
-                    keys.getPrivate(), this.getPublicKeyFilename() + "/priv.pem");
-            keyGened = true;
-        }
+//        if (!keyGened) {
+//            KeyPair keys = KeyGen.generateKeys();
+//            KeyGen.writeKeysToComputer(keys.getPublic(), this.getPublicKeyFilename() + "/pub.pem",
+//                    keys.getPrivate(), this.getPublicKeyFilename() + "/priv.pem");
+//            keyGened = true;
+//        }
 
         this.publicKey = AsymmetricKeyReader.readKey(this.getPublicKeyFilename() + "/pub.pem");
     }
