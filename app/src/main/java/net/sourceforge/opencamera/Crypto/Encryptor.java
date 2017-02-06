@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 
+import net.sourceforge.opencamera.MainActivity;
 import net.sourceforge.opencamera.PreferenceKeys;
 
 import org.spongycastle.crypto.InvalidCipherTextException;
@@ -30,13 +31,13 @@ import java.security.spec.InvalidKeySpecException;
 public class Encryptor {
     static public String FILE_EXTENSION = "encrypted";
 
-    private Context context;
+    private MainActivity mainActivity;
     private SharedPreferences preferences;
     private PublicKey publicKey;
 
-    public Encryptor(Context context) {
-        this.context = context;
-        this.preferences = PreferenceManager.getDefaultSharedPreferences(context);
+    public Encryptor(MainActivity mainActivity) {
+        this.mainActivity = mainActivity;
+        this.preferences = PreferenceManager.getDefaultSharedPreferences(mainActivity);
     }
 
     public boolean isEncryptionOn() {
@@ -52,20 +53,20 @@ public class Encryptor {
     }
 
     public void updatePublicKey() throws NoSuchAlgorithmException, IOException, InvalidKeySpecException {
-        //TODO uncomment this line and get rid of the other stuff
-        //this.publicKey = AsymmetricKeyReader.readKey(this.getPublicKeyFilename());
+        //generateKey(this.getPublicKeyFilename());
+        this.publicKey = AsymmetricKeyReader.readKey(this.getPublicKeyFilename());
 
-        KeyPairGenerator kg;
-        try {
-            kg = KeyPairGenerator.getInstance("RSA");
-            kg.initialize(512);
-            KeyPair kp = kg.generateKeyPair();
-            PublicKey publickey = kp.getPublic();
-            this.publicKey = publickey;
-        } catch (NoSuchAlgorithmException e1) {
-            // TODO Auto-generated catch block
-            e1.printStackTrace();
-        }
+//        KeyPairGenerator kg;
+//        try {
+//            kg = KeyPairGenerator.getInstance("RSA");
+//            kg.initialize(512);
+//            KeyPair kp = kg.generateKeyPair();
+//            PublicKey publickey = kp.getPublic();
+//            this.publicKey = publickey;
+//        } catch (NoSuchAlgorithmException e1) {
+//            // TODO Auto-generated catch block
+//            e1.printStackTrace();
+//        }
     }
 
     public PublicKey getPublicKey() {

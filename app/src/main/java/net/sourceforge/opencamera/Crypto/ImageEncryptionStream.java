@@ -71,8 +71,6 @@ public class ImageEncryptionStream extends OutputStream{
         random.nextBytes(iv);
 
         // Write out the symmetric key, then the initialization vector
-        //byte[] symKeyCrypt = asymCipher.processBlock(symKey, 0, symKey.length);
-        //byte[] ivCrypt = asymCipher.processBlock(iv, 0, iv.length);
         try {
             byte[] symKeyCrypt = rsaCipher.doFinal(symKey);
             out.write(symKeyCrypt.length);
