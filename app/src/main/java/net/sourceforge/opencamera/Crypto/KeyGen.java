@@ -1,3 +1,5 @@
+package net.sourceforge.opencamera.Crypto;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -43,7 +45,7 @@ public class KeyGen {
 	}
 	*/
 	
-	private static KeyPair generateKeys() {
+	public static KeyPair generateKeys() {
 		try {
 			KeyPairGenerator kg;
 			kg = KeyPairGenerator.getInstance("RSA");
@@ -81,7 +83,7 @@ public class KeyGen {
 		return null;
 	}
 	*/
-	private static void writeKeysToComputer(PublicKey publickey, String publicFile, PrivateKey privatekey, String privateFile) {
+	public static void writeKeysToComputer(PublicKey publickey, String publicFile, PrivateKey privatekey, String privateFile) {
 		try {
 			PemWriter pempublic = new PemWriter(new FileWriter(new File(publicFile)));
 			pempublic.writeObject(new PemObject("RSA PUBLIC KEY", publickey.getEncoded()));
@@ -95,7 +97,7 @@ public class KeyGen {
 			e.printStackTrace();
 		}
 	}
-	private static void writeKeyToSD(PublicKey publickey, String SDFile) {
+	public static void writeKeyToSD(PublicKey publickey, String SDFile) {
 		try {
 			PemWriter pempublic = new PemWriter(new FileWriter(new File(SDFile)));
 			pempublic.writeObject(new PemObject("RSA PUBLIC KEY", publickey.getEncoded()));

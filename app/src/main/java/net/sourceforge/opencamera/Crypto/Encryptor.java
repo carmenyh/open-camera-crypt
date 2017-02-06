@@ -52,8 +52,13 @@ public class Encryptor {
         return this.preferences.getString(PreferenceKeys.getEncryptionKeyKey(), "");
     }
 
+
+    boolean keyGened = false;
     public void updatePublicKey() throws NoSuchAlgorithmException, IOException, InvalidKeySpecException {
-        //generateKey(this.getPublicKeyFilename());
+        KeyPair keys = KeyGen.generateKeys();
+        KeyGen.writeKeysToComputer(keys.getPublic(), this.getPublicKeyFilename(), keys.getPrivate(), this.getPublicKeyFilename() + ".actuallyprivatekey");
+        keyGened = true;
+
         this.publicKey = AsymmetricKeyReader.readKey(this.getPublicKeyFilename());
 
 //        KeyPairGenerator kg;
