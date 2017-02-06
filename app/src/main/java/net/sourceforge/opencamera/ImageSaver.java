@@ -1251,7 +1251,7 @@ public class ImageSaver extends Thread {
     @SuppressWarnings("deprecation")
     private boolean saveSingleEncryptedImageNow(final Request request, byte [] data, Bitmap bitmap, String filename_suffix) {
         if( MyDebug.LOG )
-            Log.d(TAG, "saveSingleImageNow");
+            Log.d(TAG, "saveEncryptedImageNow");
 
         if (request.encrypt && request.image_capture_intent) {
             throw new IllegalArgumentException("Cannot encrypt with image capture intent");
@@ -1263,26 +1263,22 @@ public class ImageSaver extends Thread {
 
         if( request.type != Request.Type.JPEG ) {
             if( MyDebug.LOG )
-                Log.d(TAG, "saveImageNow called with non-jpeg request");
+                Log.d(TAG, "saveEncryptedImageNow called with non-jpeg request");
             // throw runtime exception, as this is a programming error
             throw new RuntimeException();
         } else if( data == null ) {
             if( MyDebug.LOG )
-                Log.d(TAG, "saveSingleImageNow called with no data");
+                Log.d(TAG, "saveEncryptedImageNow called with no data");
             // throw runtime exception, as this is a programming error
             throw new RuntimeException();
         }
         long time_s = System.currentTimeMillis();
 
         // unpack:
-        final boolean image_capture_intent = request.image_capture_intent;
-        final boolean using_camera2 = request.using_camera2;
         final Date current_date = request.current_date;
-        final boolean store_location = request.store_location;
-        final boolean store_geo_direction = request.store_geo_direction;
+
 
         boolean success = false;
-        final MyApplicationInterface applicationInterface = this.main_activity.getApplicationInterface();
         StorageUtils storageUtils = this.main_activity.getStorageUtils();
 
         this.main_activity.savingImage(true);
@@ -1334,7 +1330,7 @@ public class ImageSaver extends Thread {
                     outputStream.close();
                 }
                 if( MyDebug.LOG )
-                    Log.d(TAG, "saveImageNow saved photo");
+                    Log.d(TAG, "saveEncryptedImageNow saved photo");
                 if( MyDebug.LOG ) {
                     Log.d(TAG, "Save single image performance: time after saving photo: " + (System.currentTimeMillis() - time_s));
                 }
@@ -1500,7 +1496,7 @@ public class ImageSaver extends Thread {
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)
     private boolean saveEncryptedImageNowRaw(DngCreator dngCreator, Image image, Date current_date) {
         if( MyDebug.LOG )
-            Log.d(TAG, "saveImageNowRaw");
+            Log.d(TAG, "saveEncryptedImageNowRaw");
 
         if( Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP ) {
             if( MyDebug.LOG )
