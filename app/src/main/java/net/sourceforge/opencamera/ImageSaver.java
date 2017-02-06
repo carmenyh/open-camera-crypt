@@ -857,13 +857,20 @@ public class ImageSaver extends Thread {
 		if( MyDebug.LOG )
 			Log.d(TAG, "saveSingleImageNow");
 
+        if (request.encrypt && request.image_capture_intent) {
+            throw new IllegalArgumentException("Cannot encrypt with image capture intent");
+        }
+
+        if (request.encrypt && (request.store_geo_direction || request.store_location)) {
+            throw new IllegalArgumentException("Will not store location data with encrypted image");
+        }
+
 		if( request.type != Request.Type.JPEG ) {
 			if( MyDebug.LOG )
 				Log.d(TAG, "saveImageNow called with non-jpeg request");
 			// throw runtime exception, as this is a programming error
 			throw new RuntimeException();
-		}
-		else if( data == null ) {
+		} else if( data == null ) {
 			if( MyDebug.LOG )
 				Log.d(TAG, "saveSingleImageNow called with no data");
 			// throw runtime exception, as this is a programming error
@@ -885,15 +892,15 @@ public class ImageSaver extends Thread {
 		this.main_activity.savingImage(true);
 
 		if( request.do_auto_stabilise ) {
-			bitmap = autoStabilise(data, bitmap, request.level_angle, request.is_front_facing);
+			bitmap = this.autoStabilise(data, bitmap, request.level_angle, request.is_front_facing);
 		}
 		if( MyDebug.LOG ) {
 			Log.d(TAG, "Save single image performance: time after auto-stabilise: " + (System.currentTimeMillis() - time_s));
 		}
 		if( request.mirror ) {
-			bitmap = mirrorImage(data, bitmap);
+			bitmap = ImageSaver.mirrorImage(data, bitmap);
 		}
-		bitmap = stampImage(request, data, bitmap);
+		bitmap = this.stampImage(request, data, bitmap);
 		if( MyDebug.LOG ) {
 			Log.d(TAG, "Save single image performance: time after photostamp: " + (System.currentTimeMillis() - time_s));
 		}
@@ -902,21 +909,19 @@ public class ImageSaver extends Thread {
 		File picFile = null;
 		Uri saveUri = null; // if non-null, then picFile is a temporary file, which afterwards we should redirect to saveUri
 
+        // Set the media type depending of whether or not we are encrypting
         int mediaType = request.encrypt ? StorageUtils.MEDIA_TYPE_IMAGE : StorageUtils.MEDIA_TYPE_ENCRYPTED_IMAGE;
 
         try {
-			if( image_capture_intent ) {
+			if( image_capture_intent ) { // In this case we are not encrypting
     			if( MyDebug.LOG )
     				Log.d(TAG, "image_capture_intent");
-    			if( request.image_capture_intent_uri != null )
-    			{
+    			if( request.image_capture_intent_uri != null ) {
     			    // Save the bitmap to the specified URI (use a try/catch block)
         			if( MyDebug.LOG )
         				Log.d(TAG, "save to: " + request.image_capture_intent_uri);
         			saveUri = request.image_capture_intent_uri;
-    			}
-    			else
-    			{
+    			} else {
     			    // If the intent doesn't contain an URI, send the bitmap as a parcel
     			    // (it is a good idea to reduce its size to ~50k pixels before)
         			if( MyDebug.LOG )
@@ -962,17 +967,15 @@ public class ImageSaver extends Thread {
 						this.main_activity.setResult(Activity.RESULT_OK, new Intent("inline-data").putExtra("data", bitmap));
 					this.main_activity.finish();
     			}
-			}
-			else if( storageUtils.isUsingSAF() && !request.encrypt) {
+			} else if( storageUtils.isUsingSAF() && !request.encrypt) { // We won't use SAF if encrypting
 				saveUri = storageUtils.createOutputMediaFileSAF(mediaType, filename_suffix, "jpg", current_date);
-			}
-			else {
+			} else { // Could be encrypting in this case
     			picFile = storageUtils.createOutputMediaFile(mediaType, filename_suffix, "jpg", current_date);
 	    		if( MyDebug.LOG )
 	    			Log.d(TAG, "save to: " + picFile.getAbsolutePath());
 			}
 			
-			if( saveUri != null && picFile == null ) {
+			if( saveUri != null && picFile == null ) { // Not encrypting
 	    		if( MyDebug.LOG )
 	    			Log.d(TAG, "saveUri: " + saveUri);
 				picFile = File.createTempFile("picFile", "jpg", this.main_activity.getCacheDir());
@@ -1008,10 +1011,14 @@ public class ImageSaver extends Thread {
 	    			Log.d(TAG, "Save single image performance: time after saving photo: " + (System.currentTimeMillis() - time_s));
 	    		}
 
-	    		if( saveUri == null ) { // if saveUri is non-null, then we haven't succeeded until we've copied to the saveUri
+                // if saveUri is non-null, then we haven't succeeded until we've copied to the saveUri
+	    		if( saveUri == null ) {
 	    			success = true;
 	    		}
-	            if( picFile != null) { // TODO we should be selective about storing exif data and / or encrypt it
+
+                // If we're encrypting the photo we're not storing anything else so we don't need
+                // to do any of this
+	            if( picFile != null && !request.encrypt) {
 	            	if( bitmap != null ) {
 	            		// need to update EXIF data!
         	    		if( MyDebug.LOG )
@@ -1088,18 +1095,18 @@ public class ImageSaver extends Thread {
 						this.main_activity.test_last_saved_image = picFile.getAbsolutePath();
     	            }
 	            }
-	            if( image_capture_intent ) {
+	            if( image_capture_intent ) { // Not encrypting
     	    		if( MyDebug.LOG )
     	    			Log.d(TAG, "finish activity due to being called from intent");
 					this.main_activity.setResult(Activity.RESULT_OK);
 					this.main_activity.finish();
 	            }
-	            if( storageUtils.isUsingSAF() ) {
+	            if( storageUtils.isUsingSAF() ) { // Not Encrypting
 	            	// most Gallery apps don't seem to recognise the SAF-format Uri, so just clear the field
 	            	storageUtils.clearLastMediaScanned();
 	            }
 
-	            if( saveUri != null ) {
+	            if( saveUri != null ) { // Not encrypting
 	            	copyFileToUri(this.main_activity, saveUri, picFile);
 	    		    success = true;
 	    		    /* We still need to broadcastFile for SAF for two reasons:
@@ -1135,23 +1142,25 @@ public class ImageSaver extends Thread {
     			Log.e(TAG, "File not found: " + e.getMessage());
             e.printStackTrace();
 			this.main_activity.getPreview().showToast(null, R.string.failed_to_save_photo);
-        }
-        catch(IOException e) {
+        } catch(IOException e) {
     		if( MyDebug.LOG )
     			Log.e(TAG, "I/O error writing file: " + e.getMessage());
             e.printStackTrace();
 			this.main_activity.getPreview().showToast(null, R.string.failed_to_save_photo);
         }
 
-        if( success && saveUri == null ) {
+        if( success && saveUri == null && !request.encrypt) {
         	applicationInterface.addLastImage(picFile, share_image);
-        }
-        else if( success && storageUtils.isUsingSAF() ){
+        } else if( success && storageUtils.isUsingSAF() ){
         	applicationInterface.addLastImageSAF(saveUri, share_image);
         }
 
-		// I have received crashes where camera_controller was null - could perhaps happen if this thread was running just as the camera is closing?
-        if( success && this.main_activity.getPreview().getCameraController() != null && update_thumbnail ) {
+		// I have received crashes where camera_controller was null - could perhaps happen if this
+        // thread was running just as the camera is closing?
+        if( success &&
+                this.main_activity.getPreview().getCameraController() != null &&
+                update_thumbnail &&
+                !request.encrypt) {
         	// update thumbnail - this should be done after restarting preview, so that the preview is started asap
         	CameraController.Size size = this.main_activity.getPreview().getCameraController().getPictureSize();
     		int ratio = (int) Math.ceil((double) size.width / this.main_activity.getPreview().getView().getWidth());
@@ -1227,6 +1236,125 @@ public class ImageSaver extends Thread {
 		}
         return success;
 	}
+
+    @SuppressLint("SimpleDateFormat")
+    @SuppressWarnings("deprecation")
+    private boolean saveSingleEncryptedImageNow(final Request request, byte [] data, Bitmap bitmap, String filename_suffix, boolean update_thumbnail, boolean share_image) {
+        if( MyDebug.LOG )
+            Log.d(TAG, "saveSingleImageNow");
+
+        if (request.encrypt && request.image_capture_intent) {
+            throw new IllegalArgumentException("Cannot encrypt with image capture intent");
+        }
+
+        if (request.encrypt && (request.store_geo_direction || request.store_location)) {
+            throw new IllegalArgumentException("Will not store location data with encrypted image");
+        }
+
+        if( request.type != Request.Type.JPEG ) {
+            if( MyDebug.LOG )
+                Log.d(TAG, "saveImageNow called with non-jpeg request");
+            // throw runtime exception, as this is a programming error
+            throw new RuntimeException();
+        } else if( data == null ) {
+            if( MyDebug.LOG )
+                Log.d(TAG, "saveSingleImageNow called with no data");
+            // throw runtime exception, as this is a programming error
+            throw new RuntimeException();
+        }
+        long time_s = System.currentTimeMillis();
+
+        // unpack:
+        final boolean image_capture_intent = request.image_capture_intent;
+        final boolean using_camera2 = request.using_camera2;
+        final Date current_date = request.current_date;
+        final boolean store_location = request.store_location;
+        final boolean store_geo_direction = request.store_geo_direction;
+
+        boolean success = false;
+        final MyApplicationInterface applicationInterface = this.main_activity.getApplicationInterface();
+        StorageUtils storageUtils = this.main_activity.getStorageUtils();
+
+        this.main_activity.savingImage(true);
+
+        if( request.do_auto_stabilise ) {
+            bitmap = this.autoStabilise(data, bitmap, request.level_angle, request.is_front_facing);
+        }
+        if( MyDebug.LOG ) {
+            Log.d(TAG, "Save single image performance: time after auto-stabilise: " + (System.currentTimeMillis() - time_s));
+        }
+        if( request.mirror ) {
+            bitmap = ImageSaver.mirrorImage(data, bitmap);
+        }
+        bitmap = this.stampImage(request, data, bitmap);
+        if( MyDebug.LOG ) {
+            Log.d(TAG, "Save single image performance: time after photostamp: " + (System.currentTimeMillis() - time_s));
+        }
+
+        File picFile = null;
+
+        // Set the media type depending of whether or not we are encrypting
+        int mediaType = StorageUtils.MEDIA_TYPE_ENCRYPTED_IMAGE;
+
+        try {
+            picFile = storageUtils.createOutputMediaFile(mediaType, filename_suffix, "jpg", current_date);
+                if( MyDebug.LOG )
+                    Log.d(TAG, "save to: " + picFile.getAbsolutePath());
+
+            if( picFile != null ) {
+                OutputStream outputStream = new FileOutputStream(picFile);
+                if (request.encrypt) {
+                    try {
+                        outputStream = this.main_activity.getEncryptor().getEncryptionStream(outputStream);
+                    } catch (Encryptor.CipherCreationFailedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                try {
+                    if( bitmap != null ) {
+                        if( MyDebug.LOG )
+                            Log.d(TAG, "compress bitmap, quality " + request.image_quality);
+                        bitmap.compress(Bitmap.CompressFormat.JPEG, request.image_quality, outputStream);
+                    }
+                    else {
+                        outputStream.write(data);
+                    }
+                }
+                finally {
+                    outputStream.close();
+                }
+                if( MyDebug.LOG )
+                    Log.d(TAG, "saveImageNow saved photo");
+                if( MyDebug.LOG ) {
+                    Log.d(TAG, "Save single image performance: time after saving photo: " + (System.currentTimeMillis() - time_s));
+                }
+            }
+        }
+        catch(FileNotFoundException e) {
+            if( MyDebug.LOG )
+                Log.e(TAG, "File not found: " + e.getMessage());
+            e.printStackTrace();
+            this.main_activity.getPreview().showToast(null, R.string.failed_to_save_photo);
+        } catch(IOException e) {
+            if( MyDebug.LOG )
+                Log.e(TAG, "I/O error writing file: " + e.getMessage());
+            e.printStackTrace();
+            this.main_activity.getPreview().showToast(null, R.string.failed_to_save_photo);
+        }
+
+        if( bitmap != null ) {
+            bitmap.recycle();
+        }
+
+        System.gc();
+
+        this.main_activity.savingImage(false);
+
+        if( MyDebug.LOG ) {
+            Log.d(TAG, "Save single image performance: total time: " + (System.currentTimeMillis() - time_s));
+        }
+        return success;
+    }
 
 	/** May be run in saver thread or picture callback thread (depending on whether running in background).
 	 */
@@ -1374,6 +1502,103 @@ public class ImageSaver extends Thread {
         return success;
 	}
 
+    /** May be run in saver thread or picture callback thread (depending on whether running in background).
+     */
+    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+    private boolean saveEncryptedImageNowRaw(DngCreator dngCreator, Image image, Date current_date, boolean encrypt) {
+        if( MyDebug.LOG )
+            Log.d(TAG, "saveImageNowRaw");
+
+        if( Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP ) {
+            if( MyDebug.LOG )
+                Log.e(TAG, "RAW requires LOLLIPOP or higher");
+            return false;
+        }
+
+        StorageUtils storageUtils = this.main_activity.getStorageUtils();
+        boolean success = false;
+
+        this.main_activity.savingImage(true);
+
+        OutputStream output = null;
+        try {
+            File picFile = null;
+
+            // Set the media type depending on whether or not we are encrypting this image
+            int mediaType = encrypt ? StorageUtils.MEDIA_TYPE_IMAGE : StorageUtils.MEDIA_TYPE_ENCRYPTED_IMAGE;
+
+            picFile = storageUtils.createOutputMediaFile(mediaType, "", "dng", current_date);
+            if( MyDebug.LOG )
+                Log.d(TAG, "save to: " + picFile.getAbsolutePath());
+
+            output = new FileOutputStream(picFile);
+
+            // If encrypting, wrap the output stream in an encryption stream
+            try {
+                output = this.main_activity.getEncryptor().getEncryptionStream(output);
+            } catch (Encryptor.CipherCreationFailedException e) {
+                e.printStackTrace();
+            }
+
+            dngCreator.writeImage(output, image);
+            image.close();
+            image = null;
+            dngCreator.close();
+            dngCreator = null;
+            output.close();
+            output = null;
+
+            success = true;
+            //Uri media_uri = storageUtils.broadcastFileRaw(picFile, current_date, location);
+            //storageUtils.announceUri(media_uri, true, false);
+
+            // Only broadcast saving of the file if it's not being encrypted
+            if (!encrypt) {
+                storageUtils.broadcastFile(picFile, true, false, false);
+            }
+
+            MyApplicationInterface applicationInterface = this.main_activity.getApplicationInterface();
+
+            if( success ) { // Succeeded in saving to a file
+                if (!encrypt) { // Only add this as the last image if it wasn't encrypted
+                    applicationInterface.addLastImage(picFile, false);
+                }
+            }
+        } catch(FileNotFoundException e) {
+            if( MyDebug.LOG )
+                Log.e(TAG, "File not found: " + e.getMessage());
+            e.printStackTrace();
+            this.main_activity.getPreview().showToast(null, R.string.failed_to_save_photo_raw);
+        } catch(IOException e) {
+            if( MyDebug.LOG )
+                Log.e(TAG, "ioexception writing raw image file");
+            e.printStackTrace();
+            this.main_activity.getPreview().showToast(null, R.string.failed_to_save_photo_raw);
+        } finally {
+            if( output != null ) {
+                try {
+                    output.close();
+                }
+                catch(IOException e) {
+                    if( MyDebug.LOG )
+                        Log.e(TAG, "ioexception closing raw output");
+                    e.printStackTrace();
+                }
+            }
+            if( image != null ) {
+                image.close();
+            }
+            if( dngCreator != null ) {
+                dngCreator.close();
+            }
+        }
+
+        System.gc();
+
+        this.main_activity.savingImage(false);
+
+        return success;
+    }
 
 
 
