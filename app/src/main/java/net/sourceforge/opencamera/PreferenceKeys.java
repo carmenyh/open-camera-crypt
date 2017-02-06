@@ -239,7 +239,7 @@ public class PreferenceKeys {
         return "preference_encrypt";
     }
 
-    public static String getEncryptionKeyKey() {
+    public static String getEncryptionInfoPreferenceKey() {
         return "preference_encryption_key";
     }
 

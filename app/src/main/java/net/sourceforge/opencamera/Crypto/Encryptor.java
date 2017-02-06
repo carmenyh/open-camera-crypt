@@ -38,7 +38,7 @@ public class Encryptor {
 //    }
 
     public String getPublicKeyFilename() {
-        return this.preferences.getString(PreferenceKeys.getEncryptionKeyKey(), "");
+        return this.preferences.getString(PreferenceKeys.getEncryptionInfoPreferenceKey(), "");
     }
 
     public void updatePublicKey() throws NoSuchAlgorithmException, IOException, InvalidKeySpecException {

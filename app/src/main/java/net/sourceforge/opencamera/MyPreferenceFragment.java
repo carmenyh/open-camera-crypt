@@ -332,15 +332,11 @@ public class MyPreferenceFragment extends PreferenceFragment implements OnShared
                 @Override
                 public boolean onPreferenceClick(Preference arg0) {
                 	if( pref.getKey().equals("preference_encryption_key") ) {
-            	        String filepath = "/my/new/filepath/key" + new java.util.Random().nextInt(20) + ".pem";
-
-                        pref.setSummary(filepath);
-
-                        pref.getEditor().putString("value", filepath).commit();
-
-                        //getMainActivity().getEncryptor().updatePublicKey();
+						FolderChooserDialog fragment = new EncryptionKeyChooserDialog();
+						fragment.show(getFragmentManager(), "FOLDER_FRAGMENT");
+						return true;
                 	}
-                	return false;
+                	return true;
                 }
             });
         }
@@ -805,6 +801,25 @@ public class MyPreferenceFragment extends PreferenceFragment implements OnShared
 			String new_save_location = this.getChosenFolder();
 			main_activity.updateSaveFolder(new_save_location);
 			super.onDismiss(dialog);
+		}
+	}
+
+	public static class EncryptionKeyChooserDialog extends FolderChooserDialog {
+		@Override
+		protected String get_folder_name() {
+			SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this.getActivity());
+			return sharedPreferences.getString(PreferenceKeys.getEncryptionInfoPreferenceKey(), "");
+		}
+
+		@Override
+		public void onDismiss(DialogInterface dialog) {
+			String key_folder = this.getChosenFolder();
+			String key_name = "asdf.pem";
+			String key_file = key_folder + key_name;
+
+			SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(getActivity()).edit();
+			editor.putString(PreferenceKeys.getEncryptionInfoPreferenceKey(), key_file);
+			editor.apply();
 		}
 	}
 

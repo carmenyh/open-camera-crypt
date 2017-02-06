@@ -126,7 +126,7 @@
     <string name="preference_encrypt">Encrypt photos</string>
     <string name="preference_encrypt_summary">Longer description of how to encrypt photos asdf</string>
     <string name="preference_encryption_key">Encryption key</string>
-    <string name="preference_encryption_key_summary">Select and encryption key</string>
+    <string name="preference_encryption_key_summary">Select an encryption key</string>
     <string name="preference_save_photo_prefix">Save photo prefix</string>
     <string name="preference_save_photo_prefix_summary">The prefix to use for the save filenames for photos</string>
     <string name="preference_save_video_prefix">Save video prefix</string>
