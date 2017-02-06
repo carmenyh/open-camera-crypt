@@ -19,11 +19,18 @@ public class KeyGen {
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
 		//String password = getPassword();
+		String publicFile = "public.pem";
+		String privateFile = "private.pem";
+		String SDFile = "SD.pem";
+		if (args.length == 3) {
+			privateFile = args[0];
+			publicFile = args[1];
+			SDFile = args[2];
+		}
 		KeyPair keys = generateKeys();
 		//byte[] encrypted = encryptPrivate(keys.getPrivate(), password);
-		writeKeysToComputer(keys.getPublic(), keys.getPrivate());
-		writeKeyToSD(keys.getPublic());
-
+		writeKeysToComputer(keys.getPublic(), publicFile, keys.getPrivate(), privateFile);
+		writeKeyToSD(keys.getPublic(), SDFile);
 	}
 
 	/*
@@ -74,13 +81,13 @@ public class KeyGen {
 		return null;
 	}
 	*/
-	private static void writeKeysToComputer(PublicKey publickey, PrivateKey privatekey) {
+	private static void writeKeysToComputer(PublicKey publickey, String publicFile, PrivateKey privatekey, String privateFile) {
 		try {
-			PemWriter pempublic = new PemWriter(new FileWriter(new File("public.pem")));
+			PemWriter pempublic = new PemWriter(new FileWriter(new File(publicFile)));
 			pempublic.writeObject(new PemObject("RSA PUBLIC KEY", publickey.getEncoded()));
 			pempublic.flush();
 			pempublic.close();
-			PemWriter pemprivate = new PemWriter(new FileWriter(new File("private.pem")));			
+			PemWriter pemprivate = new PemWriter(new FileWriter(new File(privateFile)));			
 			pemprivate.writeObject(new PemObject("RSA PRIVATE KEY", privatekey.getEncoded()));
 			pemprivate.flush();
 			pemprivate.close();
@@ -88,7 +95,15 @@ public class KeyGen {
 			e.printStackTrace();
 		}
 	}
-	private static void writeKeyToSD(PublicKey publickey) {
+	private static void writeKeyToSD(PublicKey publickey, String SDFile) {
+		try {
+			PemWriter pempublic = new PemWriter(new FileWriter(new File(SDFile)));
+			pempublic.writeObject(new PemObject("RSA PUBLIC KEY", publickey.getEncoded()));
+			pempublic.flush();
+			pempublic.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		// TODO Auto-generated method stub
 		
 	}
