@@ -63,23 +63,6 @@ public class Encryptor {
         }
 
         this.publicKey = AsymmetricKeyReader.readKey(this.getPublicKeyFilename());
-        //this.publicKey = AsymmetricKeyReader.readKey(this.getPublicKeyFilename());
-
-//        KeyPairGenerator kg;
-//        try {
-//            kg = KeyPairGenerator.getInstance("RSA");
-//            kg.initialize(512);
-//            KeyPair kp = kg.generateKeyPair();
-//            PublicKey publickey = kp.getPublic();
-//            this.publicKey = publickey;
-//        } catch (NoSuchAlgorithmException e1) {
-//            // TODO Auto-generated catch block
-//            e1.printStackTrace();
-//        }
-    }
-
-    public PublicKey getPublicKey() {
-        return publicKey;
     }
 
     public String getEncryptedImageFolder() {
