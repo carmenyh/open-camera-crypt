@@ -1770,11 +1770,18 @@ public class MyApplicationInterface implements ApplicationInterface {
 		if( MyDebug.LOG )
 			Log.d(TAG, "sample_factor: " + sample_factor);
 
+
+		// We only want to encrypt if the encryption setting is on and we are
+		// not capturing an image on another app's behalf
 		boolean encrypt = main_activity.getEncryptor().isEncryptionOn() & !image_capture_intent;
-		store_geo_direction = store_geo_direction & !encrypt;
-		geo_direction = store_geo_direction ? geo_direction : 0.0;
-		store_location = store_location & !encrypt;
-		location = store_location ? location : null;
+
+		// If encrypting try to leak minimal information about the image
+		if (encrypt) {
+			store_geo_direction = false;
+			geo_direction = 0.0;
+			store_location = false;
+			location = null;
+		}
 
 		boolean success = imageSaver.saveImageJpeg(do_in_background, is_hdr, save_expo, images,
 				image_capture_intent, image_capture_intent_uri,
