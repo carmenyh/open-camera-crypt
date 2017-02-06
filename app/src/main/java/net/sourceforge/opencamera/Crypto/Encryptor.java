@@ -57,29 +57,12 @@ public class Encryptor {
     public void updatePublicKey() throws NoSuchAlgorithmException, IOException, InvalidKeySpecException {
         if (!keyGened) {
             KeyPair keys = KeyGen.generateKeys();
-            KeyGen.writeKeysToComputer(keys.getPublic(), this.getPublicKeyFilename(),
-                    keys.getPrivate(), getPublicKeyFilename() + ".priv");
+            KeyGen.writeKeysToComputer(keys.getPublic(), this.getPublicKeyFilename() + "/pub.pem",
+                    keys.getPrivate(), this.getPublicKeyFilename() + "/priv.pem");
             keyGened = true;
         }
 
-        this.publicKey = AsymmetricKeyReader.readKey(this.getPublicKeyFilename());
-        //this.publicKey = AsymmetricKeyReader.readKey(this.getPublicKeyFilename());
-
-//        KeyPairGenerator kg;
-//        try {
-//            kg = KeyPairGenerator.getInstance("RSA");
-//            kg.initialize(512);
-//            KeyPair kp = kg.generateKeyPair();
-//            PublicKey publickey = kp.getPublic();
-//            this.publicKey = publickey;
-//        } catch (NoSuchAlgorithmException e1) {
-//            // TODO Auto-generated catch block
-//            e1.printStackTrace();
-//        }
-    }
-
-    public PublicKey getPublicKey() {
-        return publicKey;
+        this.publicKey = AsymmetricKeyReader.readKey(this.getPublicKeyFilename() + "/pub.pem");
     }
 
     public String getEncryptedImageFolder() {
