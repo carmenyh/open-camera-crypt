@@ -1770,6 +1770,19 @@ public class MyApplicationInterface implements ApplicationInterface {
 		if( MyDebug.LOG )
 			Log.d(TAG, "sample_factor: " + sample_factor);
 
+
+		// We only want to encrypt if the encryption setting is on and we are
+		// not capturing an image on another app's behalf
+		boolean encrypt = main_activity.getEncryptor().isEncryptionOn() & !image_capture_intent;
+
+		// If encrypting try to leak minimal information about the image
+		if (encrypt) {
+			store_geo_direction = false;
+			geo_direction = 0.0;
+			store_location = false;
+			location = null;
+		}
+
 		boolean success = imageSaver.saveImageJpeg(do_in_background, is_hdr, save_expo, images,
 				image_capture_intent, image_capture_intent_uri,
 				using_camera2, image_quality,
@@ -1779,7 +1792,8 @@ public class MyApplicationInterface implements ApplicationInterface {
 				current_date,
 				preference_stamp, preference_textstamp, font_size, color, pref_style, preference_stamp_dateformat, preference_stamp_timeformat, preference_stamp_gpsformat,
 				store_location, location, store_geo_direction, geo_direction,
-				sample_factor);
+				sample_factor,
+				encrypt);
 
 		if( MyDebug.LOG )
 			Log.d(TAG, "saveImage complete, success: " + success);
@@ -1847,7 +1861,9 @@ public class MyApplicationInterface implements ApplicationInterface {
 
 		boolean do_in_background = saveInBackground(false);
 
-		boolean success = imageSaver.saveImageRaw(do_in_background, dngCreator, image, current_date);
+		boolean encrypt = main_activity.getEncryptor().isEncryptionOn();
+
+		boolean success = imageSaver.saveImageRaw(do_in_background, dngCreator, image, current_date, encrypt);
 		
 		if( MyDebug.LOG )
 			Log.d(TAG, "onRawPictureTaken complete");

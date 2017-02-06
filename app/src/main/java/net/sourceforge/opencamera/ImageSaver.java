@@ -1,6 +1,7 @@
 package net.sourceforge.opencamera;
 
 import net.sourceforge.opencamera.CameraController.CameraController;
+import net.sourceforge.opencamera.Crypto.Encryptor;
 import net.sourceforge.opencamera.Crypto.ImageEncryptionStream;
 import net.sourceforge.opencamera.Crypto.AsymmetricKeyReader;
 
@@ -40,8 +41,6 @@ import android.media.Image;
 import android.net.Uri;
 import android.os.Build;
 import android.util.Log;
-
-import org.spongycastle.crypto.InvalidCipherTextException;
 
 /** Handles the saving (and any required processing) of photos.
  */
@@ -103,6 +102,7 @@ public class ImageSaver extends Thread {
 		final boolean store_geo_direction;
 		final double geo_direction;
 		int sample_factor = 1; // sampling factor for thumbnail, higher means lower quality
+        final boolean encrypt;
 		
 		Request(Type type,
 			boolean is_hdr,
@@ -117,7 +117,9 @@ public class ImageSaver extends Thread {
 			Date current_date,
 			String preference_stamp, String preference_textstamp, int font_size, int color, String pref_style, String preference_stamp_dateformat, String preference_stamp_timeformat, String preference_stamp_gpsformat,
 			boolean store_location, Location location, boolean store_geo_direction, double geo_direction,
-			int sample_factor) {
+			int sample_factor,
+            boolean encrypt) {
+
 			this.type = type;
 			this.is_hdr = is_hdr;
 			this.save_expo = save_expo;
@@ -146,6 +148,7 @@ public class ImageSaver extends Thread {
 			this.store_geo_direction = store_geo_direction;
 			this.geo_direction = geo_direction;
 			this.sample_factor = sample_factor;
+            this.encrypt = encrypt;
 		}
 	}
 
@@ -161,12 +164,12 @@ public class ImageSaver extends Thread {
 	void onDestroy() {
 		if( MyDebug.LOG )
 			Log.d(TAG, "onDestroy");
-		if( hdrProcessor != null ) {
-			hdrProcessor.onDestroy();
+		if( this.hdrProcessor != null ) {
+			this.hdrProcessor.onDestroy();
 		}
 	}
-	@Override
 
+	@Override
 	public void run() {
 		if( MyDebug.LOG )
 			Log.d(TAG, "starting ImageSaver thread...");
@@ -183,7 +186,11 @@ public class ImageSaver extends Thread {
 				if( request.type == Request.Type.RAW ) {
 					if( MyDebug.LOG )
 						Log.d(TAG, "request is raw");
-					success = saveImageNowRaw(request.dngCreator, request.image, request.current_date);
+					if (request.encrypt) {
+                        success = saveEncryptedImageNowRaw(request.dngCreator, request.image, request.current_date);
+                    } else {
+                        success = saveImageNowRaw(request.dngCreator, request.image, request.current_date);
+                    }
 				}
 				else if( request.type == Request.Type.JPEG ) {
 					if( MyDebug.LOG )
@@ -243,7 +250,8 @@ public class ImageSaver extends Thread {
 			Date current_date,
 			String preference_stamp, String preference_textstamp, int font_size, int color, String pref_style, String preference_stamp_dateformat, String preference_stamp_timeformat, String preference_stamp_gpsformat,
 			boolean store_location, Location location, boolean store_geo_direction, double geo_direction,
-			int sample_factor) {
+			int sample_factor,
+            boolean encrypt) {
 		if( MyDebug.LOG ) {
 			Log.d(TAG, "saveImageJpeg");
 			Log.d(TAG, "do_in_background? " + do_in_background);
@@ -263,7 +271,8 @@ public class ImageSaver extends Thread {
 				current_date,
 				preference_stamp, preference_textstamp, font_size, color, pref_style, preference_stamp_dateformat, preference_stamp_timeformat, preference_stamp_gpsformat,
 				store_location, location, store_geo_direction, geo_direction,
-				sample_factor);
+				sample_factor,
+                encrypt);
 	}
 
 	/** Saves a RAW photo.
@@ -274,7 +283,7 @@ public class ImageSaver extends Thread {
 	 */
 	boolean saveImageRaw(boolean do_in_background,
 			DngCreator dngCreator, Image image,
-			Date current_date) {
+			Date current_date, boolean encrypt) {
 		if( MyDebug.LOG ) {
 			Log.d(TAG, "saveImageRaw");
 			Log.d(TAG, "do_in_background? " + do_in_background);
@@ -293,7 +302,8 @@ public class ImageSaver extends Thread {
 				current_date,
 				null, null, 0, 0, null, null, null, null,
 				false, null, false, 0.0,
-				1);
+				1,
+                encrypt);
 	}
 
 	/** Internal saveImage method to handle both JPEG and RAW.
@@ -312,7 +322,8 @@ public class ImageSaver extends Thread {
 			Date current_date,
 			String preference_stamp, String preference_textstamp, int font_size, int color, String pref_style, String preference_stamp_dateformat, String preference_stamp_timeformat, String preference_stamp_gpsformat,
 			boolean store_location, Location location, boolean store_geo_direction, double geo_direction,
-			int sample_factor) {
+			int sample_factor,
+            boolean encrypt) {
 		if( MyDebug.LOG ) {
 			Log.d(TAG, "saveImage");
 			Log.d(TAG, "do_in_background? " + do_in_background);
@@ -334,7 +345,8 @@ public class ImageSaver extends Thread {
 				current_date,
 				preference_stamp, preference_textstamp, font_size, color, pref_style, preference_stamp_dateformat, preference_stamp_timeformat, preference_stamp_gpsformat,
 				store_location, location, store_geo_direction, geo_direction,
-				sample_factor);
+				sample_factor,
+                encrypt);
 
 		if( do_in_background ) {
 			if( MyDebug.LOG )
@@ -358,7 +370,8 @@ public class ImageSaver extends Thread {
 					null,
 					null, null, 0, 0, null, null, null, null,
 					false, null, false, 0.0,
-					1);
+					1,
+                    false);
 				if( MyDebug.LOG )
 					Log.d(TAG, "add dummy request");
 				addRequest(dummy_request);
@@ -369,10 +382,14 @@ public class ImageSaver extends Thread {
 			// wait for queue to be empty
 			waitUntilDone();
 			if( is_raw ) {
-				success = saveImageNowRaw(request.dngCreator, request.image, request.current_date);
+				if (request.encrypt) {
+                    success = this.saveEncryptedImageNowRaw(request.dngCreator, request.image, request.current_date);
+                } else {
+                    success = this.saveImageNowRaw(request.dngCreator, request.image, request.current_date);
+                }
 			}
 			else {
-				success = saveImageNow(request);
+				success = this.saveImageNow(request);
 			}
 		}
 
@@ -446,124 +463,6 @@ public class ImageSaver extends Thread {
 		if( MyDebug.LOG )
 			Log.d(TAG, "waitUntilDone: images all saved");
 	}
-
-	/** Loads a single jpeg as a Bitmaps.
-	 * @param mutable Whether the bitmap should be mutable. Note that when converting to bitmaps
-	 *                for the image post-processing (auto-stabilise etc), in general we need the
-	 *                bitmap to be mutable (for photostamp to work).
-	 */
-	@SuppressWarnings("deprecation")
-	private Bitmap loadBitmap(byte [] jpeg_image, boolean mutable) {
-		if( MyDebug.LOG ) {
-			Log.d(TAG, "loadBitmap");
-			Log.d(TAG, "mutable?: " + mutable);
-		}
-		BitmapFactory.Options options = new BitmapFactory.Options();
-		if( MyDebug.LOG )
-			Log.d(TAG, "options.inMutable is: " + options.inMutable);
-		options.inMutable = mutable;
-		if( Build.VERSION.SDK_INT <= Build.VERSION_CODES.KITKAT ) {
-			// setting is ignored in Android 5 onwards
-			options.inPurgeable = true;
-		}
-		Bitmap bitmap = BitmapFactory.decodeByteArray(jpeg_image, 0, jpeg_image.length, options);
-		if( bitmap == null ) {
-			Log.e(TAG, "failed to decode bitmap");
-		}
-		return bitmap;
-	}
-
-	/** Helper class for loadBitmaps().
-	 */
-	private static class LoadBitmapThread extends Thread {
-		Bitmap bitmap;
-		final BitmapFactory.Options options;
-		final byte [] jpeg;
-		LoadBitmapThread(BitmapFactory.Options options, byte [] jpeg) {
-			this.options = options;
-			this.jpeg = jpeg;
-		}
-
-		public void run() {
-			this.bitmap = BitmapFactory.decodeByteArray(jpeg, 0, jpeg.length, options);
-		}
-	}
-
-	/** Converts the array of jpegs to Bitmaps. The bitmap with index mutable_id will be marked as mutable (or set to -1 to have no mutable bitmaps).
-	 */
-	@SuppressWarnings("deprecation")
-	private List<Bitmap> loadBitmaps(List<byte []> jpeg_images, int mutable_id) {
-		if( MyDebug.LOG ) {
-			Log.d(TAG, "loadBitmaps");
-			Log.d(TAG, "mutable_id: " + mutable_id);
-		}
-		BitmapFactory.Options mutable_options = new BitmapFactory.Options();
-		mutable_options.inMutable = true; // bitmap that needs to be writable
-		BitmapFactory.Options options = new BitmapFactory.Options();
-		options.inMutable = false; // later bitmaps don't need to be writable
-		if( Build.VERSION.SDK_INT <= Build.VERSION_CODES.KITKAT ) {
-			// setting is ignored in Android 5 onwards
-			mutable_options.inPurgeable = true;
-			options.inPurgeable = true;
-		}
-		LoadBitmapThread [] threads = new LoadBitmapThread[jpeg_images.size()];
-		for(int i=0;i<jpeg_images.size();i++) {
-			threads[i] = new LoadBitmapThread( i==mutable_id ? mutable_options : options, jpeg_images.get(i) );
-		}
-		// start threads
-		if( MyDebug.LOG )
-			Log.d(TAG, "start threads");
-		for(int i=0;i<jpeg_images.size();i++) {
-			threads[i].start();
-		}
-		// wait for threads to complete
-		boolean ok = true;
-		if( MyDebug.LOG )
-			Log.d(TAG, "wait for threads to complete");
-		try {
-			for(int i=0;i<jpeg_images.size();i++) {
-				threads[i].join();
-			}
-		}
-		catch(InterruptedException e) {
-			if( MyDebug.LOG )
-				Log.e(TAG, "threads interrupted");
-			e.printStackTrace();
-			ok = false;
-		}
-		if( MyDebug.LOG )
-			Log.d(TAG, "threads completed");
-
-		List<Bitmap> bitmaps = new ArrayList<>();
-		for(int i=0;i<jpeg_images.size() && ok;i++) {
-			Bitmap bitmap = threads[i].bitmap;
-			if( bitmap == null ) {
-				Log.e(TAG, "failed to decode bitmap in thread: " + i);
-				ok = false;
-			}
-			else {
-				if( MyDebug.LOG )
-					Log.d(TAG, "bitmap " + i + ": " + bitmap + " is mutable? " + bitmap.isMutable());
-			}
-			bitmaps.add(bitmap);
-		}
-		
-		if( !ok ) {
-			if( MyDebug.LOG )
-				Log.d(TAG, "cleanup from failure");
-			for(int i=0;i<jpeg_images.size();i++) {
-				if( threads[i].bitmap != null ) {
-					threads[i].bitmap.recycle();
-					threads[i].bitmap = null;
-				}
-			}
-			bitmaps.clear();
-	        System.gc();
-	        return null;
-		}
-
-		return bitmaps;
-	}
 	
 	/** May be run in saver thread or picture callback thread (depending on whether running in background).
 	 */
@@ -605,7 +504,13 @@ public class ImageSaver extends Thread {
 					String filename_suffix = "_EXP" + i;
 					// don't update the thumbnails, only do this for the final HDR image - so user doesn't think it's complete, click gallery, then wonder why the final image isn't there
 					// also don't mark these images as being shared
-					if( !saveSingleImageNow(request, image, null, filename_suffix, false, false) ) {
+                    boolean res;
+                    if (request.encrypt) {
+                        res = saveSingleEncryptedImageNow(request, image, null, filename_suffix);
+                    } else {
+                        res = saveSingleImageNow(request, image, null, filename_suffix, false, false);
+                    }
+					if( !res ) {
 						if( MyDebug.LOG )
 							Log.e(TAG, "saveSingleImageNow failed for exposure image");
 						// we don't set success to false here - as for deciding whether to pause preview or not (which is all we use the success return for), all that matters is whether we saved the final HDR image
@@ -657,7 +562,15 @@ public class ImageSaver extends Thread {
 			if( MyDebug.LOG )
 				Log.d(TAG, "base_image_id: " + base_image_id);
 			String suffix = request.jpeg_images.size() == 1 ? "_DRO" : "_HDR";
-			success = saveSingleImageNow(request, request.jpeg_images.get(base_image_id), hdr_bitmap, suffix, true, true);
+
+            boolean update_thumbnail = !request.encrypt;
+            boolean share_image = !request.encrypt;
+			if (request.encrypt) {
+                success = saveSingleEncryptedImageNow(request, request.jpeg_images.get(base_image_id), hdr_bitmap, suffix);
+            } else {
+                success = saveSingleImageNow(request, request.jpeg_images.get(base_image_id), hdr_bitmap, suffix, update_thumbnail, share_image);
+            }
+
 			if( MyDebug.LOG && !success )
 				Log.e(TAG, "saveSingleImageNow failed for hdr image");
     		if( MyDebug.LOG ) {
@@ -676,8 +589,15 @@ public class ImageSaver extends Thread {
 					// note, even if one image fails, we still try saving the other images - might as well give the user as many images as we can...
 					byte [] image = request.jpeg_images.get(i);
 					String filename_suffix = "_EXP" + i;
-					boolean share_image = i == mid_image;
-					if( !saveSingleImageNow(request, image, null, filename_suffix, true, share_image) ) {
+                    boolean update_thumbnail = !request.encrypt;
+					boolean share_image = (i == mid_image) & !request.encrypt;
+                    boolean res;
+                    if (request.encrypt) {
+                        res = saveSingleEncryptedImageNow(request, image, null, filename_suffix);
+                    } else {
+                        res = saveSingleImageNow(request, image, null, filename_suffix, update_thumbnail, share_image);
+                    }
+					if( !res ) {
 						if( MyDebug.LOG )
 							Log.e(TAG, "saveSingleImageNow failed for exposure image");
 						success = false; // require all images to be saved in order for success to be true (used for pausing the preview)
@@ -685,7 +605,13 @@ public class ImageSaver extends Thread {
 				}
 			}
 			else {
-				success = saveSingleImageNow(request, request.jpeg_images.get(0), null, "", true, true);
+                boolean update_thumbnail = !request.encrypt;
+                boolean share_image = !request.encrypt;
+				if (request.encrypt) {
+                    success = saveSingleEncryptedImageNow(request, request.jpeg_images.get(0), null, "");
+                } else {
+                    success = saveSingleImageNow(request, request.jpeg_images.get(0), null, "", update_thumbnail, share_image);
+                }
 			}
 		}
 
@@ -840,42 +766,6 @@ public class ImageSaver extends Thread {
 		return bitmap;
 	}
 
-	/** Mirrors the image.
-	 * @param data The jpeg data.
-	 * @param bitmap Optional argument - the bitmap if already unpacked from the jpeg data.
-	 * @return A bitmap representing the mirrored jpeg.
-	 */
-	private Bitmap mirrorImage(byte [] data, Bitmap bitmap) {
-		if( MyDebug.LOG ) {
-			Log.d(TAG, "mirrorImage");
-		}
-		if( bitmap == null ) {
-			if( MyDebug.LOG )
-				Log.d(TAG, "need to decode bitmap to mirror");
-			// bitmap doesn't need to be mutable here, as this won't be the final bitmap retured from the auto-stabilise code
-			bitmap = loadBitmap(data, false);
-			if( bitmap == null ) {
-				// don't bother warning to the user - we simply won't mirror the image
-				System.gc();
-			}
-		}
-		if( bitmap != null ) {
-			Matrix matrix = new Matrix();
-			matrix.preScale(-1.0f, 1.0f);
-			int width = bitmap.getWidth();
-			int height = bitmap.getHeight();
-			Bitmap new_bitmap = Bitmap.createBitmap(bitmap, 0, 0, width, height, matrix, true);
-			// careful, as new_bitmap is sometimes not a copy!
-			if( new_bitmap != bitmap ) {
-				bitmap.recycle();
-				bitmap = new_bitmap;
-			}
-			if( MyDebug.LOG )
-				Log.d(TAG, "bitmap is mutable?: " + bitmap.isMutable());
-		}
-		return bitmap;
-	}
-
 	/** Applies any photo stamp options (if they exist).
 	 * @param data The jpeg data.
 	 * @param bitmap Optional argument - the bitmap if already unpacked from the jpeg data.
@@ -982,393 +872,879 @@ public class ImageSaver extends Thread {
 		return bitmap;
 	}
 
-	/** May be run in saver thread or picture callback thread (depending on whether running in background).
-	 *  The requests.images field is ignored, instead we save the supplied data or bitmap.
-	 *  If bitmap is null, then the supplied jpeg data is saved. If bitmap is non-null, then the bitmap is
-	 *  saved, but the supplied data is still used to read EXIF data from.
-	 *  @param update_thumbnail - Whether to update the thumbnail (and show the animation).
-	 *  @param share_image - Whether this image should be marked as the one to share (if multiple images can
-	 *  be saved from a single shot (e.g., saving exposure images with HDR).
-	 */
-	@SuppressLint("SimpleDateFormat")
-	@SuppressWarnings("deprecation")
-	private boolean saveSingleImageNow(final Request request, byte [] data, Bitmap bitmap, String filename_suffix, boolean update_thumbnail, boolean share_image) {
-		if( MyDebug.LOG )
-			Log.d(TAG, "saveSingleImageNow");
+    /** May be run in saver thread or picture callback thread (depending on whether running in background).
+     *  The requests.images field is ignored, instead we save the supplied data or bitmap.
+     *  If bitmap is null, then the supplied jpeg data is saved. If bitmap is non-null, then the bitmap is
+     *  saved, but the supplied data is still used to read EXIF data from.
+     *  @param update_thumbnail - Whether to update the thumbnail (and show the animation).
+     *  @param share_image - Whether this image should be marked as the one to share (if multiple images can
+     *  be saved from a single shot (e.g., saving exposure images with HDR).
+     */
+    @SuppressLint("SimpleDateFormat")
+    @SuppressWarnings("deprecation")
+    private boolean saveSingleImageNow(final Request request, byte [] data, Bitmap bitmap, String filename_suffix, boolean update_thumbnail, boolean share_image) {
+        if( MyDebug.LOG )
+            Log.d(TAG, "saveSingleImageNow");
 
-		if( request.type != Request.Type.JPEG ) {
-			if( MyDebug.LOG )
-				Log.d(TAG, "saveImageNow called with non-jpeg request");
-			// throw runtime exception, as this is a programming error
-			throw new RuntimeException();
-		}
-		else if( data == null ) {
-			if( MyDebug.LOG )
-				Log.d(TAG, "saveSingleImageNow called with no data");
-			// throw runtime exception, as this is a programming error
-			throw new RuntimeException();
-		}
-    	long time_s = System.currentTimeMillis();
-		
-		// unpack:
-		final boolean image_capture_intent = request.image_capture_intent;
-		final boolean using_camera2 = request.using_camera2;
-		final Date current_date = request.current_date;
-		final boolean store_location = request.store_location;
-		final boolean store_geo_direction = request.store_geo_direction;
+        if( request.type != Request.Type.JPEG ) {
+            if( MyDebug.LOG )
+                Log.d(TAG, "saveImageNow called with non-jpeg request");
+            // throw runtime exception, as this is a programming error
+            throw new RuntimeException();
+        }
+        else if( data == null ) {
+            if( MyDebug.LOG )
+                Log.d(TAG, "saveSingleImageNow called with no data");
+            // throw runtime exception, as this is a programming error
+            throw new RuntimeException();
+        }
+        long time_s = System.currentTimeMillis();
+
+        // unpack:
+        final boolean image_capture_intent = request.image_capture_intent;
+        final boolean using_camera2 = request.using_camera2;
+        final Date current_date = request.current_date;
+        final boolean store_location = request.store_location;
+        final boolean store_geo_direction = request.store_geo_direction;
 
         boolean success = false;
-		final MyApplicationInterface applicationInterface = main_activity.getApplicationInterface();
-		StorageUtils storageUtils = main_activity.getStorageUtils();
-		
-		main_activity.savingImage(true);
+        final MyApplicationInterface applicationInterface = main_activity.getApplicationInterface();
+        StorageUtils storageUtils = main_activity.getStorageUtils();
 
-		if( request.do_auto_stabilise ) {
-			bitmap = autoStabilise(data, bitmap, request.level_angle, request.is_front_facing);
-		}
-		if( MyDebug.LOG ) {
-			Log.d(TAG, "Save single image performance: time after auto-stabilise: " + (System.currentTimeMillis() - time_s));
-		}
-		if( request.mirror ) {
-			bitmap = mirrorImage(data, bitmap);
-		}
-		bitmap = stampImage(request, data, bitmap);
-		if( MyDebug.LOG ) {
-			Log.d(TAG, "Save single image performance: time after photostamp: " + (System.currentTimeMillis() - time_s));
-		}
+        main_activity.savingImage(true);
 
-		int exif_orientation_s = ExifInterface.ORIENTATION_UNDEFINED;
-		File picFile = null;
-		Uri saveUri = null; // if non-null, then picFile is a temporary file, which afterwards we should redirect to saveUri
+        if( request.do_auto_stabilise ) {
+            bitmap = autoStabilise(data, bitmap, request.level_angle, request.is_front_facing);
+        }
+        if( MyDebug.LOG ) {
+            Log.d(TAG, "Save single image performance: time after auto-stabilise: " + (System.currentTimeMillis() - time_s));
+        }
+        if( request.mirror ) {
+            bitmap = mirrorImage(data, bitmap);
+        }
+        bitmap = stampImage(request, data, bitmap);
+        if( MyDebug.LOG ) {
+            Log.d(TAG, "Save single image performance: time after photostamp: " + (System.currentTimeMillis() - time_s));
+        }
+
+        int exif_orientation_s = ExifInterface.ORIENTATION_UNDEFINED;
+        File picFile = null;
+        Uri saveUri = null; // if non-null, then picFile is a temporary file, which afterwards we should redirect to saveUri
         try {
-			if( image_capture_intent ) {
-    			if( MyDebug.LOG )
-    				Log.d(TAG, "image_capture_intent");
-    			if( request.image_capture_intent_uri != null )
-    			{
-    			    // Save the bitmap to the specified URI (use a try/catch block)
-        			if( MyDebug.LOG )
-        				Log.d(TAG, "save to: " + request.image_capture_intent_uri);
-        			saveUri = request.image_capture_intent_uri;
-    			}
-    			else
-    			{
-    			    // If the intent doesn't contain an URI, send the bitmap as a parcel
-    			    // (it is a good idea to reduce its size to ~50k pixels before)
-        			if( MyDebug.LOG )
-        				Log.d(TAG, "sent to intent via parcel");
-    				if( bitmap == null ) {
-	        			if( MyDebug.LOG )
-	        				Log.d(TAG, "create bitmap");
-						// bitmap we return doesn't need to be mutable
-						bitmap = loadBitmap(data, false);
-    				}
-    				if( bitmap != null ) {
-	        			int width = bitmap.getWidth();
-	        			int height = bitmap.getHeight();
-	        			if( MyDebug.LOG ) {
-	        				Log.d(TAG, "decoded bitmap size " + width + ", " + height);
-	        				Log.d(TAG, "bitmap size: " + width*height*4);
-	        			}
-	        			final int small_size_c = 128;
-	        			if( width > small_size_c ) {
-	        				float scale = ((float)small_size_c)/(float)width;
-		        			if( MyDebug.LOG )
-		        				Log.d(TAG, "scale to " + scale);
-		        		    Matrix matrix = new Matrix();
-		        		    matrix.postScale(scale, scale);
-		        		    Bitmap new_bitmap = Bitmap.createBitmap(bitmap, 0, 0, width, height, matrix, true);
-		        		    // careful, as new_bitmap is sometimes not a copy!
-		        		    if( new_bitmap != bitmap ) {
-		        		    	bitmap.recycle();
-		        		    	bitmap = new_bitmap;
-		        		    }
-		        		}
-    				}
-        			if( MyDebug.LOG ) {
-        				if( bitmap != null ) {
-	        				Log.d(TAG, "returned bitmap size " + bitmap.getWidth() + ", " + bitmap.getHeight());
-	        				Log.d(TAG, "returned bitmap size: " + bitmap.getWidth()*bitmap.getHeight()*4);
-        				}
-        				else {
-	        				Log.e(TAG, "no bitmap created");
-        				}
-        			}
-        			if( bitmap != null )
-        				main_activity.setResult(Activity.RESULT_OK, new Intent("inline-data").putExtra("data", bitmap));
-        			main_activity.finish();
-    			}
-			}
-			else if( storageUtils.isUsingSAF() ) {
-				saveUri = storageUtils.createOutputMediaFileSAF(StorageUtils.MEDIA_TYPE_IMAGE, filename_suffix, "jpg", current_date);
-			}
-			else {
-    			picFile = storageUtils.createOutputMediaFile(StorageUtils.MEDIA_TYPE_IMAGE, filename_suffix, "jpg", current_date);
-	    		if( MyDebug.LOG )
-	    			Log.d(TAG, "save to: " + picFile.getAbsolutePath());
-			}
-			
-			if( saveUri != null && picFile == null ) {
-	    		if( MyDebug.LOG )
-	    			Log.d(TAG, "saveUri: " + saveUri);
-				picFile = File.createTempFile("picFile", "jpg", main_activity.getCacheDir());
-	    		if( MyDebug.LOG )
-	    			Log.d(TAG, "temp picFile: " + picFile.getAbsolutePath());
-			}
-			
-			if( picFile != null ) {
+            if( image_capture_intent ) {
+                if( MyDebug.LOG )
+                    Log.d(TAG, "image_capture_intent");
+                if( request.image_capture_intent_uri != null )
+                {
+                    // Save the bitmap to the specified URI (use a try/catch block)
+                    if( MyDebug.LOG )
+                        Log.d(TAG, "save to: " + request.image_capture_intent_uri);
+                    saveUri = request.image_capture_intent_uri;
+                }
+                else
+                {
+                    // If the intent doesn't contain an URI, send the bitmap as a parcel
+                    // (it is a good idea to reduce its size to ~50k pixels before)
+                    if( MyDebug.LOG )
+                        Log.d(TAG, "sent to intent via parcel");
+                    if( bitmap == null ) {
+                        if( MyDebug.LOG )
+                            Log.d(TAG, "create bitmap");
+                        // bitmap we return doesn't need to be mutable
+                        bitmap = loadBitmap(data, false);
+                    }
+                    if( bitmap != null ) {
+                        int width = bitmap.getWidth();
+                        int height = bitmap.getHeight();
+                        if( MyDebug.LOG ) {
+                            Log.d(TAG, "decoded bitmap size " + width + ", " + height);
+                            Log.d(TAG, "bitmap size: " + width*height*4);
+                        }
+                        final int small_size_c = 128;
+                        if( width > small_size_c ) {
+                            float scale = ((float)small_size_c)/(float)width;
+                            if( MyDebug.LOG )
+                                Log.d(TAG, "scale to " + scale);
+                            Matrix matrix = new Matrix();
+                            matrix.postScale(scale, scale);
+                            Bitmap new_bitmap = Bitmap.createBitmap(bitmap, 0, 0, width, height, matrix, true);
+                            // careful, as new_bitmap is sometimes not a copy!
+                            if( new_bitmap != bitmap ) {
+                                bitmap.recycle();
+                                bitmap = new_bitmap;
+                            }
+                        }
+                    }
+                    if( MyDebug.LOG ) {
+                        if( bitmap != null ) {
+                            Log.d(TAG, "returned bitmap size " + bitmap.getWidth() + ", " + bitmap.getHeight());
+                            Log.d(TAG, "returned bitmap size: " + bitmap.getWidth()*bitmap.getHeight()*4);
+                        }
+                        else {
+                            Log.e(TAG, "no bitmap created");
+                        }
+                    }
+                    if( bitmap != null )
+                        main_activity.setResult(Activity.RESULT_OK, new Intent("inline-data").putExtra("data", bitmap));
+                    main_activity.finish();
+                }
+            }
+            else if( storageUtils.isUsingSAF() ) {
+                saveUri = storageUtils.createOutputMediaFileSAF(StorageUtils.MEDIA_TYPE_IMAGE, filename_suffix, "jpg", current_date);
+            }
+            else {
+                picFile = storageUtils.createOutputMediaFile(StorageUtils.MEDIA_TYPE_IMAGE, filename_suffix, "jpg", current_date);
+                if( MyDebug.LOG )
+                    Log.d(TAG, "save to: " + picFile.getAbsolutePath());
+            }
+
+            if( saveUri != null && picFile == null ) {
+                if( MyDebug.LOG )
+                    Log.d(TAG, "saveUri: " + saveUri);
+                picFile = File.createTempFile("picFile", "jpg", main_activity.getCacheDir());
+                if( MyDebug.LOG )
+                    Log.d(TAG, "temp picFile: " + picFile.getAbsolutePath());
+            }
+
+            if( picFile != null ) {
                 OutputStream outputStream = new FileOutputStream(picFile);
-                boolean shouldEncrypt = main_activity.getEncryptor().isEncryptionOn();
-                if (shouldEncrypt) {
-                    try {
-                        outputStream = main_activity.getEncryptor().getEncryptionStream(outputStream);
-                    } catch (InvalidCipherTextException e) {
-                        e.printStackTrace();
-                    } catch (InvalidKeyException e) {
-                        e.printStackTrace();
+                try {
+                    if( bitmap != null ) {
+                        if( MyDebug.LOG )
+                            Log.d(TAG, "compress bitmap, quality " + request.image_quality);
+                        bitmap.compress(Bitmap.CompressFormat.JPEG, request.image_quality, outputStream);
+                    }
+                    else {
+                        outputStream.write(data);
                     }
                 }
-				try {
-		            if( bitmap != null ) {
-						if( MyDebug.LOG )
-							Log.d(TAG, "compress bitmap, quality " + request.image_quality);
-	    	            bitmap.compress(Bitmap.CompressFormat.JPEG, request.image_quality, outputStream);
-		            }
-		            else {
-		            	outputStream.write(data);
-		            }
-				}
-				finally {
-					outputStream.close();
-				}
-	    		if( MyDebug.LOG )
-	    			Log.d(TAG, "saveImageNow saved photo");
-	    		if( MyDebug.LOG ) {
-	    			Log.d(TAG, "Save single image performance: time after saving photo: " + (System.currentTimeMillis() - time_s));
-	    		}
+                finally {
+                    outputStream.close();
+                }
+                if( MyDebug.LOG )
+                    Log.d(TAG, "saveImageNow saved photo");
+                if( MyDebug.LOG ) {
+                    Log.d(TAG, "Save single image performance: time after saving photo: " + (System.currentTimeMillis() - time_s));
+                }
 
-	    		if( saveUri == null ) { // if saveUri is non-null, then we haven't succeeded until we've copied to the saveUri
-	    			success = true;
-	    		}
-	            if( picFile != null ) { // TODO we should be selective about storing exif data and / or encrypt it
-	            	if( bitmap != null ) {
-	            		// need to update EXIF data!
-        	    		if( MyDebug.LOG )
-        	    			Log.d(TAG, "write temp file to record EXIF data");
-	            		File tempFile = File.createTempFile("opencamera_exif", "");
-	    	            OutputStream tempOutputStream = new FileOutputStream(tempFile);
-	    	            try {
-	    	            	tempOutputStream.write(data);
-	    	            }
-	    	            finally {
-	    	            	tempOutputStream.close();
-	    	            }
-	    	    		if( MyDebug.LOG ) {
-	    	    			Log.d(TAG, "Save single image performance: time after saving temp photo for EXIF: " + (System.currentTimeMillis() - time_s));
-	    	    		}
-						exif_orientation_s = setExifFromFile(request, tempFile, picFile);
-						if( MyDebug.LOG ) {
-							Log.d(TAG, "Save single image performance: time after copying EXIF: " + (System.currentTimeMillis() - time_s));
-						}
-    					if( !tempFile.delete() ) {
-    						if( MyDebug.LOG )
-    							Log.e(TAG, "failed to delete temp " + tempFile.getAbsolutePath());
-    					}
-        	    		if( MyDebug.LOG )
-        	    			Log.d(TAG, "now saved EXIF data");
-        	    		if( MyDebug.LOG ) {
-        	    			Log.d(TAG, "Save single image performance: time after writing EXIF: " + (System.currentTimeMillis() - time_s));
-        	    		}
-	            	}
-	            	else if( store_geo_direction ) {
-    	            	if( MyDebug.LOG )
-        	    			Log.d(TAG, "add GPS direction exif info");
-    	            	try {
-	    	            	ExifInterface exif = new ExifInterface(picFile.getAbsolutePath());
-	        	            setGPSDirectionExif(exif, store_geo_direction, request.geo_direction);
-	        	            setDateTimeExif(exif);
-	        	            if( needGPSTimestampHack(using_camera2, store_location) ) {
-	        	            	fixGPSTimestamp(exif, current_date);
-	        	            }
-	    	            	exif.saveAttributes();
-    	            	}
-    		    		catch(NoClassDefFoundError exception) {
-    		    			// have had Google Play crashes from new ExifInterface() elsewhere for Galaxy Ace4 (vivalto3g), Galaxy S Duos3 (vivalto3gvn), so also catch here just in case
-    		    			if( MyDebug.LOG )
-    		    				Log.e(TAG, "exif orientation NoClassDefFoundError");
-    		    			exception.printStackTrace();
-    		    		}
-    	        		if( MyDebug.LOG ) {
-    	        			Log.d(TAG, "Save single image performance: time after adding GPS direction exif info: " + (System.currentTimeMillis() - time_s));
-    	        		}
-	            	}
-	            	else if( needGPSTimestampHack(using_camera2, store_location) ) {
-    	            	if( MyDebug.LOG )
-        	    			Log.d(TAG, "remove GPS timestamp hack");
-    	            	try {
-	    	            	ExifInterface exif = new ExifInterface(picFile.getAbsolutePath());
-	    	            	fixGPSTimestamp(exif, current_date);
-	    	            	exif.saveAttributes();
-    	            	}
-    		    		catch(NoClassDefFoundError exception) {
-    		    			// have had Google Play crashes from new ExifInterface() elsewhere for Galaxy Ace4 (vivalto3g), Galaxy S Duos3 (vivalto3gvn), so also catch here just in case
-    		    			if( MyDebug.LOG )
-    		    				Log.e(TAG, "exif orientation NoClassDefFoundError");
-    		    			exception.printStackTrace();
-    		    		}
-    	        		if( MyDebug.LOG ) {
-    	        			Log.d(TAG, "Save single image performance: time after removing GPS timestamp hack: " + (System.currentTimeMillis() - time_s));
-    	        		}
-	            	}
+                if( saveUri == null ) { // if saveUri is non-null, then we haven't succeeded until we've copied to the saveUri
+                    success = true;
+                }
+                if( picFile != null ) {
+                    if( bitmap != null ) {
+                        // need to update EXIF data!
+                        if( MyDebug.LOG )
+                            Log.d(TAG, "write temp file to record EXIF data");
+                        File tempFile = File.createTempFile("opencamera_exif", "");
+                        OutputStream tempOutputStream = new FileOutputStream(tempFile);
+                        try {
+                            tempOutputStream.write(data);
+                        }
+                        finally {
+                            tempOutputStream.close();
+                        }
+                        if( MyDebug.LOG ) {
+                            Log.d(TAG, "Save single image performance: time after saving temp photo for EXIF: " + (System.currentTimeMillis() - time_s));
+                        }
+                        exif_orientation_s = setExifFromFile(request, tempFile, picFile);
+                        if( MyDebug.LOG ) {
+                            Log.d(TAG, "Save single image performance: time after copying EXIF: " + (System.currentTimeMillis() - time_s));
+                        }
+                        if( !tempFile.delete() ) {
+                            if( MyDebug.LOG )
+                                Log.e(TAG, "failed to delete temp " + tempFile.getAbsolutePath());
+                        }
+                        if( MyDebug.LOG )
+                            Log.d(TAG, "now saved EXIF data");
+                        if( MyDebug.LOG ) {
+                            Log.d(TAG, "Save single image performance: time after writing EXIF: " + (System.currentTimeMillis() - time_s));
+                        }
+                    }
+                    else if( store_geo_direction ) {
+                        if( MyDebug.LOG )
+                            Log.d(TAG, "add GPS direction exif info");
+                        try {
+                            ExifInterface exif = new ExifInterface(picFile.getAbsolutePath());
+                            setGPSDirectionExif(exif, store_geo_direction, request.geo_direction);
+                            setDateTimeExif(exif);
+                            if( needGPSTimestampHack(using_camera2, store_location) ) {
+                                fixGPSTimestamp(exif, current_date);
+                            }
+                            exif.saveAttributes();
+                        }
+                        catch(NoClassDefFoundError exception) {
+                            // have had Google Play crashes from new ExifInterface() elsewhere for Galaxy Ace4 (vivalto3g), Galaxy S Duos3 (vivalto3gvn), so also catch here just in case
+                            if( MyDebug.LOG )
+                                Log.e(TAG, "exif orientation NoClassDefFoundError");
+                            exception.printStackTrace();
+                        }
+                        if( MyDebug.LOG ) {
+                            Log.d(TAG, "Save single image performance: time after adding GPS direction exif info: " + (System.currentTimeMillis() - time_s));
+                        }
+                    }
+                    else if( needGPSTimestampHack(using_camera2, store_location) ) {
+                        if( MyDebug.LOG )
+                            Log.d(TAG, "remove GPS timestamp hack");
+                        try {
+                            ExifInterface exif = new ExifInterface(picFile.getAbsolutePath());
+                            fixGPSTimestamp(exif, current_date);
+                            exif.saveAttributes();
+                        }
+                        catch(NoClassDefFoundError exception) {
+                            // have had Google Play crashes from new ExifInterface() elsewhere for Galaxy Ace4 (vivalto3g), Galaxy S Duos3 (vivalto3gvn), so also catch here just in case
+                            if( MyDebug.LOG )
+                                Log.e(TAG, "exif orientation NoClassDefFoundError");
+                            exception.printStackTrace();
+                        }
+                        if( MyDebug.LOG ) {
+                            Log.d(TAG, "Save single image performance: time after removing GPS timestamp hack: " + (System.currentTimeMillis() - time_s));
+                        }
+                    }
 
-    	            if( saveUri == null ) {
-    	            	// broadcast for SAF is done later, when we've actually written out the file
-    	            	storageUtils.broadcastFile(picFile, true, false, update_thumbnail);
-    	            	main_activity.test_last_saved_image = picFile.getAbsolutePath();
-    	            }
-	            }
-	            if( image_capture_intent ) {
-    	    		if( MyDebug.LOG )
-    	    			Log.d(TAG, "finish activity due to being called from intent");
-	            	main_activity.setResult(Activity.RESULT_OK);
-	            	main_activity.finish();
-	            }
-	            if( storageUtils.isUsingSAF() ) {
-	            	// most Gallery apps don't seem to recognise the SAF-format Uri, so just clear the field
-	            	storageUtils.clearLastMediaScanned();
-	            }
+                    if( saveUri == null ) {
+                        // broadcast for SAF is done later, when we've actually written out the file
+                        storageUtils.broadcastFile(picFile, true, false, update_thumbnail);
+                        main_activity.test_last_saved_image = picFile.getAbsolutePath();
+                    }
+                }
+                if( image_capture_intent ) {
+                    if( MyDebug.LOG )
+                        Log.d(TAG, "finish activity due to being called from intent");
+                    main_activity.setResult(Activity.RESULT_OK);
+                    main_activity.finish();
+                }
+                if( storageUtils.isUsingSAF() ) {
+                    // most Gallery apps don't seem to recognise the SAF-format Uri, so just clear the field
+                    storageUtils.clearLastMediaScanned();
+                }
 
-	            if( saveUri != null ) {
-	            	copyFileToUri(main_activity, saveUri, picFile);
-	    		    success = true;
-	    		    /* We still need to broadcastFile for SAF for two reasons:
-	    		    	1. To call storageUtils.announceUri() to broadcast NEW_PICTURE etc.
-	    		           Whilst in theory we could do this directly, it seems external apps that use such broadcasts typically
-	    		           won't know what to do with a SAF based Uri (e.g, Owncloud crashes!) so better to broadcast the Uri
-	    		           corresponding to the real file, if it exists.
-	    		        2. Whilst the new file seems to be known by external apps such as Gallery without having to call media
-	    		           scanner, I've had reports this doesn't happen when saving to external SD cards. So better to explicitly
-	    		           scan.
-	    		    */
-		    	    File real_file = storageUtils.getFileFromDocumentUriSAF(saveUri, false);
-					if( MyDebug.LOG )
-						Log.d(TAG, "real_file: " + real_file);
+                if( saveUri != null ) {
+                    copyFileToUri(main_activity, saveUri, picFile);
+                    success = true;
+                    /* We still need to broadcastFile for SAF for two reasons:
+                        1. To call storageUtils.announceUri() to broadcast NEW_PICTURE etc.
+                           Whilst in theory we could do this directly, it seems external apps that use such broadcasts typically
+                           won't know what to do with a SAF based Uri (e.g, Owncloud crashes!) so better to broadcast the Uri
+                           corresponding to the real file, if it exists.
+                        2. Whilst the new file seems to be known by external apps such as Gallery without having to call media
+                           scanner, I've had reports this doesn't happen when saving to external SD cards. So better to explicitly
+                           scan.
+                    */
+                    File real_file = storageUtils.getFileFromDocumentUriSAF(saveUri, false);
+                    if( MyDebug.LOG )
+                        Log.d(TAG, "real_file: " + real_file);
                     if( real_file != null ) {
-    					if( MyDebug.LOG )
-    						Log.d(TAG, "broadcast file");
-    	            	storageUtils.broadcastFile(real_file, true, false, true);
-    	            	main_activity.test_last_saved_image = real_file.getAbsolutePath();
+                        if( MyDebug.LOG )
+                            Log.d(TAG, "broadcast file");
+                        storageUtils.broadcastFile(real_file, true, false, true);
+                        main_activity.test_last_saved_image = real_file.getAbsolutePath();
                     }
                     else if( !image_capture_intent ) {
-    					if( MyDebug.LOG )
-    						Log.d(TAG, "announce SAF uri");
-                    	// announce the SAF Uri
-                    	// (shouldn't do this for a capture intent - e.g., causes crash when calling from Google Keep)
-    	    		    storageUtils.announceUri(saveUri, true, false);
+                        if( MyDebug.LOG )
+                            Log.d(TAG, "announce SAF uri");
+                        // announce the SAF Uri
+                        // (shouldn't do this for a capture intent - e.g., causes crash when calling from Google Keep)
+                        storageUtils.announceUri(saveUri, true, false);
                     }
-	            }
-	        }
-		}
+                }
+            }
+        }
         catch(FileNotFoundException e) {
-    		if( MyDebug.LOG )
-    			Log.e(TAG, "File not found: " + e.getMessage());
+            if( MyDebug.LOG )
+                Log.e(TAG, "File not found: " + e.getMessage());
             e.printStackTrace();
             main_activity.getPreview().showToast(null, R.string.failed_to_save_photo);
         }
         catch(IOException e) {
-    		if( MyDebug.LOG )
-    			Log.e(TAG, "I/O error writing file: " + e.getMessage());
+            if( MyDebug.LOG )
+                Log.e(TAG, "I/O error writing file: " + e.getMessage());
             e.printStackTrace();
             main_activity.getPreview().showToast(null, R.string.failed_to_save_photo);
         }
 
         if( success && saveUri == null ) {
-        	applicationInterface.addLastImage(picFile, share_image);
+            applicationInterface.addLastImage(picFile, share_image);
         }
         else if( success && storageUtils.isUsingSAF() ){
-        	applicationInterface.addLastImageSAF(saveUri, share_image);
+            applicationInterface.addLastImageSAF(saveUri, share_image);
         }
 
-		// I have received crashes where camera_controller was null - could perhaps happen if this thread was running just as the camera is closing?
+        // I have received crashes where camera_controller was null - could perhaps happen if this thread was running just as the camera is closing?
         if( success && main_activity.getPreview().getCameraController() != null && update_thumbnail ) {
-        	// update thumbnail - this should be done after restarting preview, so that the preview is started asap
-        	CameraController.Size size = main_activity.getPreview().getCameraController().getPictureSize();
-    		int ratio = (int) Math.ceil((double) size.width / main_activity.getPreview().getView().getWidth());
-    		int sample_size = Integer.highestOneBit(ratio);
-    		sample_size *= request.sample_factor;
-    		if( MyDebug.LOG ) {
-    			Log.d(TAG, "    picture width: " + size.width);
-    			Log.d(TAG, "    preview width: " + main_activity.getPreview().getView().getWidth());
-    			Log.d(TAG, "    ratio        : " + ratio);
-    			Log.d(TAG, "    sample_size  : " + sample_size);
-    		}
-    		Bitmap thumbnail;
-			if( bitmap == null ) {
-				BitmapFactory.Options options = new BitmapFactory.Options();
-				options.inMutable = false;
-				if( Build.VERSION.SDK_INT <= Build.VERSION_CODES.KITKAT ) {
-					// setting is ignored in Android 5 onwards
-					options.inPurgeable = true;
-				}
-				options.inSampleSize = sample_size;
-    			thumbnail = BitmapFactory.decodeByteArray(data, 0, data.length, options);
-			}
-			else {
-    			int width = bitmap.getWidth();
-    			int height = bitmap.getHeight();
-    		    Matrix matrix = new Matrix();
-    		    float scale = 1.0f / (float)sample_size;
-    		    matrix.postScale(scale, scale);
-	    		if( MyDebug.LOG )
-	    			Log.d(TAG, "    scale: " + scale);
-    		    thumbnail = Bitmap.createBitmap(bitmap, 0, 0, width, height, matrix, true);
-			}
-			if( thumbnail == null ) {
-				// received crashes on Google Play suggesting that thumbnail could not be created
-	    		if( MyDebug.LOG )
-	    			Log.e(TAG, "failed to create thumbnail bitmap");
-			}
-			else {
-				// now get the rotation from the Exif data
-				thumbnail = rotateForExif(thumbnail, exif_orientation_s, picFile.getAbsolutePath());
+            // update thumbnail - this should be done after restarting preview, so that the preview is started asap
+            CameraController.Size size = main_activity.getPreview().getCameraController().getPictureSize();
+            int ratio = (int) Math.ceil((double) size.width / main_activity.getPreview().getView().getWidth());
+            int sample_size = Integer.highestOneBit(ratio);
+            sample_size *= request.sample_factor;
+            if( MyDebug.LOG ) {
+                Log.d(TAG, "    picture width: " + size.width);
+                Log.d(TAG, "    preview width: " + main_activity.getPreview().getView().getWidth());
+                Log.d(TAG, "    ratio        : " + ratio);
+                Log.d(TAG, "    sample_size  : " + sample_size);
+            }
+            Bitmap thumbnail;
+            if( bitmap == null ) {
+                BitmapFactory.Options options = new BitmapFactory.Options();
+                options.inMutable = false;
+                if( Build.VERSION.SDK_INT <= Build.VERSION_CODES.KITKAT ) {
+                    // setting is ignored in Android 5 onwards
+                    options.inPurgeable = true;
+                }
+                options.inSampleSize = sample_size;
+                thumbnail = BitmapFactory.decodeByteArray(data, 0, data.length, options);
+            }
+            else {
+                int width = bitmap.getWidth();
+                int height = bitmap.getHeight();
+                Matrix matrix = new Matrix();
+                float scale = 1.0f / (float)sample_size;
+                matrix.postScale(scale, scale);
+                if( MyDebug.LOG )
+                    Log.d(TAG, "    scale: " + scale);
+                thumbnail = Bitmap.createBitmap(bitmap, 0, 0, width, height, matrix, true);
+            }
+            if( thumbnail == null ) {
+                // received crashes on Google Play suggesting that thumbnail could not be created
+                if( MyDebug.LOG )
+                    Log.e(TAG, "failed to create thumbnail bitmap");
+            }
+            else {
+                // now get the rotation from the Exif data
+                thumbnail = rotateForExif(thumbnail, exif_orientation_s, picFile.getAbsolutePath());
 
-	    		final Bitmap thumbnail_f = thumbnail;
-		    	main_activity.runOnUiThread(new Runnable() {
-					public void run() {
-						applicationInterface.updateThumbnail(thumbnail_f);
-					}
-				});
-        		if( MyDebug.LOG ) {
-        			Log.d(TAG, "Save single image performance: time after creating thumbnail: " + (System.currentTimeMillis() - time_s));
-        		}
-			}
+                final Bitmap thumbnail_f = thumbnail;
+                main_activity.runOnUiThread(new Runnable() {
+                    public void run() {
+                        applicationInterface.updateThumbnail(thumbnail_f);
+                    }
+                });
+                if( MyDebug.LOG ) {
+                    Log.d(TAG, "Save single image performance: time after creating thumbnail: " + (System.currentTimeMillis() - time_s));
+                }
+            }
         }
 
         if( bitmap != null ) {
-		    bitmap.recycle();
+            bitmap.recycle();
         }
 
         if( picFile != null && saveUri != null ) {
-    		if( MyDebug.LOG )
-    			Log.d(TAG, "delete temp picFile: " + picFile);
-        	if( !picFile.delete() ) {
-        		if( MyDebug.LOG )
-        			Log.e(TAG, "failed to delete temp picFile: " + picFile);
-        	}
+            if( MyDebug.LOG )
+                Log.d(TAG, "delete temp picFile: " + picFile);
+            if( !picFile.delete() ) {
+                if( MyDebug.LOG )
+                    Log.e(TAG, "failed to delete temp picFile: " + picFile);
+            }
         }
-        
-        System.gc();
-        
-		main_activity.savingImage(false);
 
-		if( MyDebug.LOG ) {
-			Log.d(TAG, "Save single image performance: total time: " + (System.currentTimeMillis() - time_s));
-		}
+        System.gc();
+
+        main_activity.savingImage(false);
+
+        if( MyDebug.LOG ) {
+            Log.d(TAG, "Save single image performance: total time: " + (System.currentTimeMillis() - time_s));
+        }
         return success;
+    }
+
+    @SuppressLint("SimpleDateFormat")
+    @SuppressWarnings("deprecation")
+    private boolean saveSingleEncryptedImageNow(final Request request, byte [] data, Bitmap bitmap, String filename_suffix) {
+        if( MyDebug.LOG )
+            Log.d(TAG, "saveEncryptedImageNow");
+
+        if (request.encrypt && request.image_capture_intent) {
+            throw new IllegalArgumentException("Cannot encrypt with image capture intent");
+        }
+
+        if (request.encrypt && (request.store_geo_direction || request.store_location)) {
+            throw new IllegalArgumentException("Will not store location data with encrypted image");
+        }
+
+        if( request.type != Request.Type.JPEG ) {
+            if( MyDebug.LOG )
+                Log.d(TAG, "saveEncryptedImageNow called with non-jpeg request");
+            // throw runtime exception, as this is a programming error
+            throw new RuntimeException();
+        } else if( data == null ) {
+            if( MyDebug.LOG )
+                Log.d(TAG, "saveEncryptedImageNow called with no data");
+            // throw runtime exception, as this is a programming error
+            throw new RuntimeException();
+        }
+        long time_s = System.currentTimeMillis();
+
+        // unpack:
+        final Date current_date = request.current_date;
+
+
+        boolean success = false;
+        StorageUtils storageUtils = this.main_activity.getStorageUtils();
+
+        this.main_activity.savingImage(true);
+
+        if( request.do_auto_stabilise ) {
+            bitmap = this.autoStabilise(data, bitmap, request.level_angle, request.is_front_facing);
+        }
+        if( MyDebug.LOG ) {
+            Log.d(TAG, "Save single image performance: time after auto-stabilise: " + (System.currentTimeMillis() - time_s));
+        }
+        if( request.mirror ) {
+            bitmap = ImageSaver.mirrorImage(data, bitmap);
+        }
+        bitmap = this.stampImage(request, data, bitmap);
+        if( MyDebug.LOG ) {
+            Log.d(TAG, "Save single image performance: time after photostamp: " + (System.currentTimeMillis() - time_s));
+        }
+
+        File picFile = null;
+
+        // Set the media type depending of whether or not we are encrypting
+        int mediaType = StorageUtils.MEDIA_TYPE_ENCRYPTED_IMAGE;
+
+        try {
+            picFile = storageUtils.createOutputMediaFile(mediaType, filename_suffix, "jpg", current_date);
+                if( MyDebug.LOG )
+                    Log.d(TAG, "save to: " + picFile.getAbsolutePath());
+
+            if( picFile != null ) {
+                OutputStream outputStream = new FileOutputStream(picFile);
+                if (request.encrypt) {
+                    try {
+                        outputStream = this.main_activity.getEncryptor().getEncryptionStream(outputStream);
+                    } catch (Encryptor.CipherCreationFailedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                try {
+                    if( bitmap != null ) {
+                        if( MyDebug.LOG )
+                            Log.d(TAG, "compress bitmap, quality " + request.image_quality);
+                        bitmap.compress(Bitmap.CompressFormat.JPEG, request.image_quality, outputStream);
+                    }
+                    else {
+                        outputStream.write(data);
+                    }
+                }
+                finally {
+                    outputStream.close();
+                }
+                if( MyDebug.LOG )
+                    Log.d(TAG, "saveEncryptedImageNow saved photo");
+                if( MyDebug.LOG ) {
+                    Log.d(TAG, "Save single image performance: time after saving photo: " + (System.currentTimeMillis() - time_s));
+                }
+            }
+        }
+        catch(FileNotFoundException e) {
+            if( MyDebug.LOG )
+                Log.e(TAG, "File not found: " + e.getMessage());
+            e.printStackTrace();
+            this.main_activity.getPreview().showToast(null, R.string.failed_to_save_photo);
+        } catch(IOException e) {
+            if( MyDebug.LOG )
+                Log.e(TAG, "I/O error writing file: " + e.getMessage());
+            e.printStackTrace();
+            this.main_activity.getPreview().showToast(null, R.string.failed_to_save_photo);
+        }
+
+        if( bitmap != null ) {
+            bitmap.recycle();
+        }
+
+        System.gc();
+
+        this.main_activity.savingImage(false);
+
+        if( MyDebug.LOG ) {
+            Log.d(TAG, "Save single image performance: total time: " + (System.currentTimeMillis() - time_s));
+        }
+        return success;
+    }
+
+    /** May be run in saver thread or picture callback thread (depending on whether running in background).
+     */
+    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+    private boolean saveImageNowRaw(DngCreator dngCreator, Image image, Date current_date) {
+        if( MyDebug.LOG )
+            Log.d(TAG, "saveImageNowRaw");
+
+        if( Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP ) {
+            if( MyDebug.LOG )
+                Log.e(TAG, "RAW requires LOLLIPOP or higher");
+            return false;
+        }
+        StorageUtils storageUtils = main_activity.getStorageUtils();
+        boolean success = false;
+
+        main_activity.savingImage(true);
+
+        OutputStream output = null;
+        try {
+            File picFile = null;
+            Uri saveUri = null;
+
+            if( storageUtils.isUsingSAF() ) {
+                saveUri = storageUtils.createOutputMediaFileSAF(StorageUtils.MEDIA_TYPE_IMAGE, "", "dng", current_date);
+                if( MyDebug.LOG )
+                    Log.d(TAG, "saveUri: " + saveUri);
+                // When using SAF, we don't save to a temp file first (unlike for JPEGs). Firstly we don't need to modify Exif, so don't
+                // need a real file; secondly copying to a temp file is much slower for RAW.
+            }
+            else {
+                picFile = storageUtils.createOutputMediaFile(StorageUtils.MEDIA_TYPE_IMAGE, "", "dng", current_date);
+                if( MyDebug.LOG )
+                    Log.d(TAG, "save to: " + picFile.getAbsolutePath());
+            }
+
+            if( picFile != null ) {
+                output = new FileOutputStream(picFile);
+            }
+            else {
+                output = main_activity.getContentResolver().openOutputStream(saveUri);
+            }
+            dngCreator.writeImage(output, image);
+            image.close();
+            image = null;
+            dngCreator.close();
+            dngCreator = null;
+            output.close();
+            output = null;
+
+            /*Location location = null;
+            if( main_activity.getApplicationInterface().getGeotaggingPref() ) {
+                location = main_activity.getApplicationInterface().getLocation();
+                if( MyDebug.LOG )
+                    Log.d(TAG, "location: " + location);
+            }*/
+
+            if( saveUri == null ) {
+                success = true;
+                //Uri media_uri = storageUtils.broadcastFileRaw(picFile, current_date, location);
+                //storageUtils.announceUri(media_uri, true, false);
+                storageUtils.broadcastFile(picFile, true, false, false);
+            }
+            else {
+                success = true;
+                File real_file = storageUtils.getFileFromDocumentUriSAF(saveUri, false);
+                if( MyDebug.LOG )
+                    Log.d(TAG, "real_file: " + real_file);
+                if( real_file != null ) {
+                    if( MyDebug.LOG )
+                        Log.d(TAG, "broadcast file");
+                    //Uri media_uri = storageUtils.broadcastFileRaw(real_file, current_date, location);
+                    //storageUtils.announceUri(media_uri, true, false);
+                    storageUtils.broadcastFile(real_file, true, false, false);
+                }
+                else {
+                    if( MyDebug.LOG )
+                        Log.d(TAG, "announce SAF uri");
+                    storageUtils.announceUri(saveUri, true, false);
+                }
+            }
+
+            MyApplicationInterface applicationInterface = main_activity.getApplicationInterface();
+            if( success && saveUri == null ) {
+                applicationInterface.addLastImage(picFile, false);
+            }
+            else if( success && storageUtils.isUsingSAF() ){
+                applicationInterface.addLastImageSAF(saveUri, false);
+            }
+
+        }
+        catch(FileNotFoundException e) {
+            if( MyDebug.LOG )
+                Log.e(TAG, "File not found: " + e.getMessage());
+            e.printStackTrace();
+            main_activity.getPreview().showToast(null, R.string.failed_to_save_photo_raw);
+        }
+        catch(IOException e) {
+            if( MyDebug.LOG )
+                Log.e(TAG, "ioexception writing raw image file");
+            e.printStackTrace();
+            main_activity.getPreview().showToast(null, R.string.failed_to_save_photo_raw);
+        }
+        finally {
+            if( output != null ) {
+                try {
+                    output.close();
+                }
+                catch(IOException e) {
+                    if( MyDebug.LOG )
+                        Log.e(TAG, "ioexception closing raw output");
+                    e.printStackTrace();
+                }
+            }
+            if( image != null ) {
+                image.close();
+            }
+            if( dngCreator != null ) {
+                dngCreator.close();
+            }
+        }
+
+
+        System.gc();
+
+        main_activity.savingImage(false);
+
+        return success;
+    }
+
+    /** May be run in saver thread or picture callback thread (depending on whether running in background).
+     */
+    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+    private boolean saveEncryptedImageNowRaw(DngCreator dngCreator, Image image, Date current_date) {
+        if( MyDebug.LOG )
+            Log.d(TAG, "saveEncryptedImageNowRaw");
+
+        if( Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP ) {
+            if( MyDebug.LOG )
+                Log.e(TAG, "RAW requires LOLLIPOP or higher");
+            return false;
+        }
+
+        StorageUtils storageUtils = this.main_activity.getStorageUtils();
+        boolean success = false;
+
+        this.main_activity.savingImage(true);
+
+        OutputStream output = null;
+        try {
+            File picFile = null;
+
+            // Set the media type depending on whether or not we are encrypting this image
+            int mediaType = StorageUtils.MEDIA_TYPE_ENCRYPTED_IMAGE;
+
+            picFile = storageUtils.createOutputMediaFile(mediaType, "", "dng", current_date);
+            if( MyDebug.LOG )
+                Log.d(TAG, "save to: " + picFile.getAbsolutePath());
+
+            output = new FileOutputStream(picFile);
+
+            // If encrypting, wrap the output stream in an encryption stream
+            try {
+                output = this.main_activity.getEncryptor().getEncryptionStream(output);
+            } catch (Encryptor.CipherCreationFailedException e) {
+                e.printStackTrace();
+            }
+
+            dngCreator.writeImage(output, image);
+            image.close();
+            image = null;
+            dngCreator.close();
+            dngCreator = null;
+            output.close();
+            output = null;
+
+            success = true;
+            //Uri media_uri = storageUtils.broadcastFileRaw(picFile, current_date, location);
+            //storageUtils.announceUri(media_uri, true, false);
+
+            MyApplicationInterface applicationInterface = this.main_activity.getApplicationInterface();
+        } catch(FileNotFoundException e) {
+            if( MyDebug.LOG )
+                Log.e(TAG, "File not found: " + e.getMessage());
+            e.printStackTrace();
+            this.main_activity.getPreview().showToast(null, R.string.failed_to_save_photo_raw);
+        } catch(IOException e) {
+            if( MyDebug.LOG )
+                Log.e(TAG, "ioexception writing raw image file");
+            e.printStackTrace();
+            this.main_activity.getPreview().showToast(null, R.string.failed_to_save_photo_raw);
+        } finally {
+            if( output != null ) {
+                try {
+                    output.close();
+                }
+                catch(IOException e) {
+                    if( MyDebug.LOG )
+                        Log.e(TAG, "ioexception closing raw output");
+                    e.printStackTrace();
+                }
+            }
+            if( image != null ) {
+                image.close();
+            }
+            if( dngCreator != null ) {
+                dngCreator.close();
+            }
+        }
+
+        System.gc();
+
+        this.main_activity.savingImage(false);
+
+        return success;
+    }
+
+
+
+
+
+
+
+
+	/*********************************/
+	/* PRIVATE STATIC HELPER METHODS */
+	/*********************************/
+
+	/** Loads a single jpeg as a Bitmaps.
+	 * @param mutable Whether the bitmap should be mutable. Note that when converting to bitmaps
+	 *                for the image post-processing (auto-stabilise etc), in general we need the
+	 *                bitmap to be mutable (for photostamp to work).
+	 */
+	@SuppressWarnings("deprecation")
+	private static Bitmap loadBitmap(byte [] jpeg_image, boolean mutable) {
+		if( MyDebug.LOG ) {
+			Log.d(TAG, "loadBitmap");
+			Log.d(TAG, "mutable?: " + mutable);
+		}
+		BitmapFactory.Options options = new BitmapFactory.Options();
+		if( MyDebug.LOG )
+			Log.d(TAG, "options.inMutable is: " + options.inMutable);
+		options.inMutable = mutable;
+		if( Build.VERSION.SDK_INT <= Build.VERSION_CODES.KITKAT ) {
+			// setting is ignored in Android 5 onwards
+			options.inPurgeable = true;
+		}
+		Bitmap bitmap = BitmapFactory.decodeByteArray(jpeg_image, 0, jpeg_image.length, options);
+		if( bitmap == null ) {
+			Log.e(TAG, "failed to decode bitmap");
+		}
+		return bitmap;
+	}
+
+	/** Helper class for loadBitmaps().
+	 */
+	private static class LoadBitmapThread extends Thread {
+		Bitmap bitmap;
+		final BitmapFactory.Options options;
+		final byte [] jpeg;
+		LoadBitmapThread(BitmapFactory.Options options, byte [] jpeg) {
+			this.options = options;
+			this.jpeg = jpeg;
+		}
+
+		public void run() {
+			this.bitmap = BitmapFactory.decodeByteArray(jpeg, 0, jpeg.length, options);
+		}
+	}
+
+	/** Converts the array of jpegs to Bitmaps. The bitmap with index mutable_id will be marked as mutable (or set to -1 to have no mutable bitmaps).
+	 */
+	@SuppressWarnings("deprecation")
+	private static List<Bitmap> loadBitmaps(List<byte []> jpeg_images, int mutable_id) {
+		if( MyDebug.LOG ) {
+			Log.d(TAG, "loadBitmaps");
+			Log.d(TAG, "mutable_id: " + mutable_id);
+		}
+		BitmapFactory.Options mutable_options = new BitmapFactory.Options();
+		mutable_options.inMutable = true; // bitmap that needs to be writable
+		BitmapFactory.Options options = new BitmapFactory.Options();
+		options.inMutable = false; // later bitmaps don't need to be writable
+		if( Build.VERSION.SDK_INT <= Build.VERSION_CODES.KITKAT ) {
+			// setting is ignored in Android 5 onwards
+			mutable_options.inPurgeable = true;
+			options.inPurgeable = true;
+		}
+		LoadBitmapThread [] threads = new LoadBitmapThread[jpeg_images.size()];
+		for(int i=0;i<jpeg_images.size();i++) {
+			threads[i] = new LoadBitmapThread( i==mutable_id ? mutable_options : options, jpeg_images.get(i) );
+		}
+		// start threads
+		if( MyDebug.LOG )
+			Log.d(TAG, "start threads");
+		for(int i=0;i<jpeg_images.size();i++) {
+			threads[i].start();
+		}
+		// wait for threads to complete
+		boolean ok = true;
+		if( MyDebug.LOG )
+			Log.d(TAG, "wait for threads to complete");
+		try {
+			for(int i=0;i<jpeg_images.size();i++) {
+				threads[i].join();
+			}
+		}
+		catch(InterruptedException e) {
+			if( MyDebug.LOG )
+				Log.e(TAG, "threads interrupted");
+			e.printStackTrace();
+			ok = false;
+		}
+		if( MyDebug.LOG )
+			Log.d(TAG, "threads completed");
+
+		List<Bitmap> bitmaps = new ArrayList<>();
+		for(int i=0;i<jpeg_images.size() && ok;i++) {
+			Bitmap bitmap = threads[i].bitmap;
+			if( bitmap == null ) {
+				Log.e(TAG, "failed to decode bitmap in thread: " + i);
+				ok = false;
+			}
+			else {
+				if( MyDebug.LOG )
+					Log.d(TAG, "bitmap " + i + ": " + bitmap + " is mutable? " + bitmap.isMutable());
+			}
+			bitmaps.add(bitmap);
+		}
+
+		if( !ok ) {
+			if( MyDebug.LOG )
+				Log.d(TAG, "cleanup from failure");
+			for(int i=0;i<jpeg_images.size();i++) {
+				if( threads[i].bitmap != null ) {
+					threads[i].bitmap.recycle();
+					threads[i].bitmap = null;
+				}
+			}
+			bitmaps.clear();
+			System.gc();
+			return null;
+		}
+
+		return bitmaps;
+	}
+
+	/** Mirrors the image.
+	 * @param data The jpeg data.
+	 * @param bitmap Optional argument - the bitmap if already unpacked from the jpeg data.
+	 * @return A bitmap representing the mirrored jpeg.
+	 */
+	private static Bitmap mirrorImage(byte [] data, Bitmap bitmap) {
+		if( MyDebug.LOG ) {
+			Log.d(TAG, "mirrorImage");
+		}
+		if( bitmap == null ) {
+			if( MyDebug.LOG )
+				Log.d(TAG, "need to decode bitmap to mirror");
+			// bitmap doesn't need to be mutable here, as this won't be the final bitmap retured from the auto-stabilise code
+			bitmap = loadBitmap(data, false);
+			if( bitmap == null ) {
+				// don't bother warning to the user - we simply won't mirror the image
+				System.gc();
+			}
+		}
+		if( bitmap != null ) {
+			Matrix matrix = new Matrix();
+			matrix.preScale(-1.0f, 1.0f);
+			int width = bitmap.getWidth();
+			int height = bitmap.getHeight();
+			Bitmap new_bitmap = Bitmap.createBitmap(bitmap, 0, 0, width, height, matrix, true);
+			// careful, as new_bitmap is sometimes not a copy!
+			if( new_bitmap != bitmap ) {
+				bitmap.recycle();
+				bitmap = new_bitmap;
+			}
+			if( MyDebug.LOG )
+				Log.d(TAG, "bitmap is mutable?: " + bitmap.isMutable());
+		}
+		return bitmap;
 	}
 
 	@SuppressWarnings("deprecation")
-	private int setExifFromFile(final Request request, File from_file, File to_file) throws IOException {
+	private static int setExifFromFile(final Request request, File from_file, File to_file) throws IOException {
 		if( MyDebug.LOG )
 			Log.d(TAG, "setExifFromFile");
 		int exif_orientation_s = ExifInterface.ORIENTATION_UNDEFINED;
@@ -1456,157 +1832,18 @@ public class ImageSaver extends Thread {
 		return exif_orientation_s;
 	}
 
-	/** May be run in saver thread or picture callback thread (depending on whether running in background).
-	 */
-	@TargetApi(Build.VERSION_CODES.LOLLIPOP)
-	private boolean saveImageNowRaw(DngCreator dngCreator, Image image, Date current_date) {
-		if( MyDebug.LOG )
-			Log.d(TAG, "saveImageNowRaw");
-
-		if( Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP ) {
-			if( MyDebug.LOG )
-				Log.e(TAG, "RAW requires LOLLIPOP or higher");
-			return false;
-		}
-		StorageUtils storageUtils = main_activity.getStorageUtils();
-		boolean success = false;
-
-		main_activity.savingImage(true);
-
-        OutputStream output = null;
-        try {
-    		File picFile = null;
-    		Uri saveUri = null;
-
-			if( storageUtils.isUsingSAF() ) {
-				saveUri = storageUtils.createOutputMediaFileSAF(StorageUtils.MEDIA_TYPE_IMAGE, "", "dng", current_date);
-	    		if( MyDebug.LOG )
-	    			Log.d(TAG, "saveUri: " + saveUri);
-	    		// When using SAF, we don't save to a temp file first (unlike for JPEGs). Firstly we don't need to modify Exif, so don't
-	    		// need a real file; secondly copying to a temp file is much slower for RAW.
-			}
-			else {
-        		picFile = storageUtils.createOutputMediaFile(StorageUtils.MEDIA_TYPE_IMAGE, "", "dng", current_date);
-	    		if( MyDebug.LOG )
-	    			Log.d(TAG, "save to: " + picFile.getAbsolutePath());
-			}
-
-    		if( picFile != null ) {
-    			output = new FileOutputStream(picFile); // TODO Replace this with an encrypted stream if appropriate
-    		}
-    		else {
-    		    output = main_activity.getContentResolver().openOutputStream(saveUri); // TODO Replace this with an encrypted stream if appropriate
-    		}
-            boolean shouldEncrypt = main_activity.getEncryptor().isEncryptionOn();
-            if (shouldEncrypt) {
-                try {
-                    output = main_activity.getEncryptor().getEncryptionStream(output);
-                } catch (InvalidCipherTextException e) {
-                    e.printStackTrace();
-                } catch (InvalidKeyException e) {
-                    e.printStackTrace();
-                }
-            }
-            dngCreator.writeImage(output, image);
-    		image.close();
-    		image = null;
-    		dngCreator.close();
-    		dngCreator = null;
-    		output.close();
-    		output = null;
-
-    		/*Location location = null;
-    		if( main_activity.getApplicationInterface().getGeotaggingPref() ) {
-    			location = main_activity.getApplicationInterface().getLocation();
-	    		if( MyDebug.LOG )
-	    			Log.d(TAG, "location: " + location);
-    		}*/
-
-    		if( saveUri == null ) {
-    			success = true;
-        		//Uri media_uri = storageUtils.broadcastFileRaw(picFile, current_date, location);
-    		    //storageUtils.announceUri(media_uri, true, false);    			
-            	storageUtils.broadcastFile(picFile, true, false, false);
-    		}
-    		else {
-    		    success = true;
-	    	    File real_file = storageUtils.getFileFromDocumentUriSAF(saveUri, false);
-				if( MyDebug.LOG )
-					Log.d(TAG, "real_file: " + real_file);
-                if( real_file != null ) {
-					if( MyDebug.LOG )
-						Log.d(TAG, "broadcast file");
-	        		//Uri media_uri = storageUtils.broadcastFileRaw(real_file, current_date, location);
-	    		    //storageUtils.announceUri(media_uri, true, false);
-	    		    storageUtils.broadcastFile(real_file, true, false, false);
-                }
-                else {
-					if( MyDebug.LOG )
-						Log.d(TAG, "announce SAF uri");
-	    		    storageUtils.announceUri(saveUri, true, false);
-                }
-            }
-
-    		MyApplicationInterface applicationInterface = main_activity.getApplicationInterface();
-    		if( success && saveUri == null ) {
-            	applicationInterface.addLastImage(picFile, false);
-            }
-            else if( success && storageUtils.isUsingSAF() ){
-            	applicationInterface.addLastImageSAF(saveUri, false);
-            }
-
-        }
-        catch(FileNotFoundException e) {
-    		if( MyDebug.LOG )
-    			Log.e(TAG, "File not found: " + e.getMessage());
-            e.printStackTrace();
-            main_activity.getPreview().showToast(null, R.string.failed_to_save_photo_raw);
-        }
-        catch(IOException e) {
-			if( MyDebug.LOG )
-				Log.e(TAG, "ioexception writing raw image file");
-            e.printStackTrace();
-            main_activity.getPreview().showToast(null, R.string.failed_to_save_photo_raw);
-        }
-        finally {
-        	if( output != null ) {
-				try {
-					output.close();
-				}
-				catch(IOException e) {
-					if( MyDebug.LOG )
-						Log.e(TAG, "ioexception closing raw output");
-					e.printStackTrace();
-				}
-        	}
-        	if( image != null ) {
-        		image.close();
-        	}
-        	if( dngCreator != null ) {
-        		dngCreator.close();
-        	}
-        }
-
-
-    	System.gc();
-
-        main_activity.savingImage(false);
-
-        return success;
-	}
-
-    private Bitmap rotateForExif(Bitmap bitmap, int exif_orientation_s, String path) {
+	private static Bitmap rotateForExif(Bitmap bitmap, int exif_orientation_s, String path) {
 		try {
 			if( exif_orientation_s == ExifInterface.ORIENTATION_UNDEFINED ) {
 				// haven't already read the exif orientation (or it didn't exist?)
-	    		if( MyDebug.LOG )
-	    			Log.d(TAG, "    read exif orientation");
-            	ExifInterface exif = new ExifInterface(path);
-            	exif_orientation_s = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED);
+				if( MyDebug.LOG )
+					Log.d(TAG, "    read exif orientation");
+				ExifInterface exif = new ExifInterface(path);
+				exif_orientation_s = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED);
 			}
-    		if( MyDebug.LOG )
-    			Log.d(TAG, "    exif orientation string: " + exif_orientation_s);
-    		boolean needs_tf = false;
+			if( MyDebug.LOG )
+				Log.d(TAG, "    exif orientation string: " + exif_orientation_s);
+			boolean needs_tf = false;
 			int exif_orientation = 0;
 			// from http://jpegclub.org/exif_orientation.html
 			// and http://stackoverflow.com/questions/20478765/how-to-get-the-correct-orientation-of-the-image-selected-from-the-default-image
@@ -1627,11 +1864,11 @@ public class ImageSaver extends Thread {
 			}
 			else {
 				// just leave unchanged for now
-	    		if( MyDebug.LOG )
-	    			Log.e(TAG, "    unsupported exif orientation: " + exif_orientation_s);
+				if( MyDebug.LOG )
+					Log.e(TAG, "    unsupported exif orientation: " + exif_orientation_s);
 			}
-    		if( MyDebug.LOG )
-    			Log.d(TAG, "    exif orientation: " + exif_orientation);
+			if( MyDebug.LOG )
+				Log.d(TAG, "    exif orientation: " + exif_orientation);
 
 			if( needs_tf ) {
 				Matrix m = new Matrix();
@@ -1655,10 +1892,10 @@ public class ImageSaver extends Thread {
 			exception.printStackTrace();
 		}
 		return bitmap;
-    }
+	}
 
-	private void setGPSDirectionExif(ExifInterface exif, boolean store_geo_direction, double geo_direction) {
-    	if( store_geo_direction ) {
+	private static void setGPSDirectionExif(ExifInterface exif, boolean store_geo_direction, double geo_direction) {
+		if( store_geo_direction ) {
 			float geo_angle = (float)Math.toDegrees(geo_direction);
 			if( geo_angle < 0.0f ) {
 				geo_angle += 360.0f;
@@ -1669,22 +1906,22 @@ public class ImageSaver extends Thread {
 			String GPSImgDirection_string = Math.round(geo_angle*100) + "/100";
 			if( MyDebug.LOG )
 				Log.d(TAG, "GPSImgDirection_string: " + GPSImgDirection_string);
-		   	exif.setAttribute(TAG_GPS_IMG_DIRECTION, GPSImgDirection_string);
-		   	exif.setAttribute(TAG_GPS_IMG_DIRECTION_REF, "M");
-    	}
+			exif.setAttribute(TAG_GPS_IMG_DIRECTION, GPSImgDirection_string);
+			exif.setAttribute(TAG_GPS_IMG_DIRECTION_REF, "M");
+		}
 	}
 
-	private void setDateTimeExif(ExifInterface exif) {
-    	String exif_datetime = exif.getAttribute(ExifInterface.TAG_DATETIME);
-    	if( exif_datetime != null ) {
-        	if( MyDebug.LOG )
-    			Log.d(TAG, "write datetime tags: " + exif_datetime);
-        	exif.setAttribute("DateTimeOriginal", exif_datetime);
-        	exif.setAttribute("DateTimeDigitized", exif_datetime);
-    	}
+	private static void setDateTimeExif(ExifInterface exif) {
+		String exif_datetime = exif.getAttribute(ExifInterface.TAG_DATETIME);
+		if( exif_datetime != null ) {
+			if( MyDebug.LOG )
+				Log.d(TAG, "write datetime tags: " + exif_datetime);
+			exif.setAttribute("DateTimeOriginal", exif_datetime);
+			exif.setAttribute("DateTimeDigitized", exif_datetime);
+		}
 	}
-	
-	private void fixGPSTimestamp(ExifInterface exif, Date current_date) {
+
+	private static void fixGPSTimestamp(ExifInterface exif, Date current_date) {
 		if( MyDebug.LOG ) {
 			Log.d(TAG, "fixGPSTimestamp");
 			Log.d(TAG, "current datestamp: " + exif.getAttribute(ExifInterface.TAG_GPS_DATESTAMP));
@@ -1712,22 +1949,22 @@ public class ImageSaver extends Thread {
 			Log.d(TAG, "timestamp: " + timestamp);
 		}
 		exif.setAttribute(ExifInterface.TAG_GPS_DATESTAMP, datestamp);
-    	exif.setAttribute(ExifInterface.TAG_GPS_TIMESTAMP, timestamp);
-	
+		exif.setAttribute(ExifInterface.TAG_GPS_TIMESTAMP, timestamp);
+
 		if( MyDebug.LOG )
 			Log.d(TAG, "fixGPSTimestamp exit");
 	}
-	
-	private boolean needGPSTimestampHack(boolean using_camera2, boolean store_location) {
+
+	private static boolean needGPSTimestampHack(boolean using_camera2, boolean store_location) {
 		if( using_camera2 ) {
-    		return store_location;
+			return store_location;
 		}
 		return false;
 	}
 
 	/** Reads from picFile and writes the contents to saveUri.
 	 */
-	private void copyFileToUri(Context context, Uri saveUri, File picFile) throws IOException {
+	private static void copyFileToUri(Context context, Uri saveUri, File picFile) throws IOException {
 		if( MyDebug.LOG ) {
 			Log.d(TAG, "copyFileToUri");
 			Log.d(TAG, "saveUri: " + saveUri);
@@ -1758,6 +1995,6 @@ public class ImageSaver extends Thread {
 	// for testing:
 	
 	HDRProcessor getHDRProcessor() {
-		return hdrProcessor;
+		return this.hdrProcessor;
 	}
 }
