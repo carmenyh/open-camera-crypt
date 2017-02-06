@@ -73,7 +73,11 @@ public class Encryptor {
     }
 
     public String getEncryptedImageFolder() {
-        return this.preferences.getString("sjdnfjhjkdhdjkn"/*PreferenceKeys.getEncryptedImageFolder()*/, this.preferences.getString(PreferenceKeys.getLocationPreferenceKey(), ""));
+            String imageFolderPath = this.preferences.getString("sjdnfjhjkdhdjkn"/*PreferenceKeys.getEncryptedImageFolder()*/, "");
+            if (imageFolderPath == null || imageFolderPath.equals("")) {
+                imageFolderPath = this.preferences.getString(PreferenceKeys.getSaveLocationPreferenceKey(), "OpenCamera");
+            }
+            return imageFolderPath;
     }
 
     public class CipherCreationFailedException extends RuntimeException {
