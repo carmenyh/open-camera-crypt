@@ -42,8 +42,6 @@ import android.net.Uri;
 import android.os.Build;
 import android.util.Log;
 
-import org.spongycastle.crypto.InvalidCipherTextException;
-
 /** Handles the saving (and any required processing) of photos.
  */
 public class ImageSaver extends Thread {
