@@ -33,6 +33,7 @@ import android.util.Log;
 import android.view.Display;
 import android.widget.Toast;
 
+import java.io.File;
 import java.util.Locale;
 
 /** Fragment to handle the Settings UI. Note that originally this was a
@@ -815,7 +816,7 @@ public class MyPreferenceFragment extends PreferenceFragment implements OnShared
 		public void onDismiss(DialogInterface dialog) {
 			String key_folder = this.getChosenFolder();
 			String key_name = "asdf.pem";
-			String key_file = key_folder + key_name;
+			String key_file = new File(key_folder, key_name).toString();
 
 			SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(getActivity()).edit();
 			editor.putString(PreferenceKeys.getEncryptionInfoPreferenceKey(), key_file);
