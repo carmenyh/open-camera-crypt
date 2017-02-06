@@ -98,7 +98,9 @@ public class ImageEncryptionStream extends OutputStream{
 
     @Override
     public void close() throws IOException  {
-        checkState();
+        if (publicKey != null || out != null) {
+            throw new IllegalStateException("Not yet initialized");
+        }
         this.symOut.close();
         this.symOut = null;
     }
