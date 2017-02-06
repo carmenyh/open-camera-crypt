@@ -245,11 +245,11 @@ public class FolderChooserDialog extends DialogFragment {
 		if( canWrite() ) {
         	File base_folder = StorageUtils.getBaseFolder();
         	String new_save_location = current_folder.getAbsolutePath();
-        	if( current_folder.getParentFile() != null && current_folder.getParentFile().equals(base_folder) ) {
-				if( MyDebug.LOG )
-					Log.d(TAG, "parent folder is base folder");
-				new_save_location = current_folder.getName();
-        	}
+//        	if( current_folder.getParentFile() != null && current_folder.getParentFile().equals(base_folder) ) {
+//				if( MyDebug.LOG )
+//					Log.d(TAG, "parent folder is base folder");
+//				new_save_location = current_folder.getName();
+//        	}
 			if( MyDebug.LOG )
 				Log.d(TAG, "new_save_location: " + new_save_location);
 			chosen_folder = new_save_location;

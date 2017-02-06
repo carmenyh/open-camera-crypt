@@ -817,7 +817,7 @@ public class MyPreferenceFragment extends PreferenceFragment implements OnShared
 			String key_folder = this.getChosenFolder();
 			//String key_name = "asdf.pem";
 			//String key_file = new File(key_folder, key_name).toString();
-			
+
 			SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(getActivity()).edit();
 			editor.putString(PreferenceKeys.getEncryptionInfoPreferenceKey(), key_folder);
 			editor.apply();
