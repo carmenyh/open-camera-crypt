@@ -35,6 +35,7 @@ import static android.R.attr.key;
  */
 
 public class ImageEncryptionStream extends OutputStream{
+
     private PublicKey publicKey;
     private OutputStream out;
     private CipherOutputStream symOut;
@@ -51,9 +52,6 @@ public class ImageEncryptionStream extends OutputStream{
         if (publicKey == null || out == null) {
             throw new IllegalStateException("Already initialized");
         }
-        if (symOut == null) {
-            throw new IllegalStateException("Already closed");
-        }
         // Setup a cipher and ouput stream for encrypting the symmetric key and initialization vector
         Cipher rsaCipher;
         try {
@@ -69,12 +67,10 @@ public class ImageEncryptionStream extends OutputStream{
         SecureRandom random = new SecureRandom();
         byte[] symKey = new byte[32];
         random.nextBytes(symKey);
-        byte[] iv = new byte[32];
+        byte[] iv = new byte[8];
         random.nextBytes(iv);
 
         // Write out the symmetric key, then the initialization vector
-        //byte[] symKeyCrypt = asymCipher.processBlock(symKey, 0, symKey.length);
-        //byte[] ivCrypt = asymCipher.processBlock(iv, 0, iv.length);
         try {
             byte[] symKeyCrypt = rsaCipher.doFinal(symKey);
             out.write(symKeyCrypt.length);
@@ -100,7 +96,9 @@ public class ImageEncryptionStream extends OutputStream{
 
     @Override
     public void close() throws IOException  {
-        checkState();
+        if (publicKey != null || out != null) {
+            throw new IllegalStateException("Not yet initialized");
+        }
         this.symOut.close();
         this.symOut = null;
     }
