@@ -1251,28 +1251,33 @@ public class ImageSaver extends Thread {
     		File picFile = null;
     		Uri saveUri = null;
 
+            // Set the media type depending on whether or not we are encrypting this image
             int mediaType = encrypt ? StorageUtils.MEDIA_TYPE_IMAGE : StorageUtils.MEDIA_TYPE_ENCRYPTED_IMAGE;
 
+            // Only use SAF storage if saving an unencrypted photo
 			if( storageUtils.isUsingSAF() && !encrypt ) {
 				saveUri = storageUtils.createOutputMediaFileSAF(mediaType, "", "dng", current_date);
 	    		if( MyDebug.LOG )
 	    			Log.d(TAG, "saveUri: " + saveUri);
-	    		// When using SAF, we don't save to a temp file first (unlike for JPEGs). Firstly we don't need to modify Exif, so don't
-	    		// need a real file; secondly copying to a temp file is much slower for RAW.
-			}
-			else {
+	    		// When using SAF, we don't save to a temp file first (unlike for JPEGs).
+                // Firstly we don't need to modify Exif, so don't need a real file; secondly copying
+                // to a temp file is much slower for RAW.
+			} else {
         		picFile = storageUtils.createOutputMediaFile(mediaType, "", "dng", current_date);
 	    		if( MyDebug.LOG )
 	    			Log.d(TAG, "save to: " + picFile.getAbsolutePath());
 			}
 
+            // TODO not sure why this is separate from the previous if/else
     		if( picFile != null ) {
-    			output = new FileOutputStream(picFile); // TODO Replace this with an encrypted stream if appropriate
-    		}
-    		else {
-    		    output = this.main_activity.getContentResolver().openOutputStream(saveUri); // TODO Replace this with an encrypted stream if appropriate
+                // In this case we are not using SAF
+    			output = new FileOutputStream(picFile);
+    		} else {
+                // In this case we are using SAF
+    		    output = this.main_activity.getContentResolver().openOutputStream(saveUri);
     		}
 
+            // If encrypting, wrap the output stream in an encryption stream
             if (encrypt) {
                 try {
                     output = this.main_activity.getEncryptor().getEncryptionStream(output);
@@ -1280,6 +1285,7 @@ public class ImageSaver extends Thread {
                     e.printStackTrace();
                 }
             }
+
             dngCreator.writeImage(output, image);
     		image.close();
     		image = null;
@@ -1295,13 +1301,16 @@ public class ImageSaver extends Thread {
 	    			Log.d(TAG, "location: " + location);
     		}*/
 
-    		if( saveUri == null ) {
+    		if( saveUri == null ) {// Not using SAF i.e. saving to a file
     			success = true;
         		//Uri media_uri = storageUtils.broadcastFileRaw(picFile, current_date, location);
     		    //storageUtils.announceUri(media_uri, true, false);    			
-            	storageUtils.broadcastFile(picFile, true, false, false);
-    		}
-    		else {
+
+                // Only broadcast saving of the file if it's not being encrypted
+                if (!encrypt) {
+                    storageUtils.broadcastFile(picFile, true, false, false);
+                }
+    		} else { // Using SAF and therefore not encrypting
     		    success = true;
 	    	    File real_file = storageUtils.getFileFromDocumentUriSAF(saveUri, false);
 				if( MyDebug.LOG )
@@ -1312,8 +1321,7 @@ public class ImageSaver extends Thread {
 	        		//Uri media_uri = storageUtils.broadcastFileRaw(real_file, current_date, location);
 	    		    //storageUtils.announceUri(media_uri, true, false);
 	    		    storageUtils.broadcastFile(real_file, true, false, false);
-                }
-                else {
+                } else {
 					if( MyDebug.LOG )
 						Log.d(TAG, "announce SAF uri");
 	    		    storageUtils.announceUri(saveUri, true, false);
@@ -1321,27 +1329,26 @@ public class ImageSaver extends Thread {
             }
 
     		MyApplicationInterface applicationInterface = this.main_activity.getApplicationInterface();
-    		if( success && saveUri == null ) {
-            	applicationInterface.addLastImage(picFile, false);
-            }
-            else if( success && storageUtils.isUsingSAF() ){
+
+            if( success && saveUri == null ) { // Succeeded in saving to a file
+            	if (!encrypt) { // Only add this as the last image if it wasn't encrypted
+                    applicationInterface.addLastImage(picFile, false);
+                }
+            } else if( success && storageUtils.isUsingSAF() ){
             	applicationInterface.addLastImageSAF(saveUri, false);
             }
 
-        }
-        catch(FileNotFoundException e) {
+        } catch(FileNotFoundException e) {
     		if( MyDebug.LOG )
     			Log.e(TAG, "File not found: " + e.getMessage());
             e.printStackTrace();
 			this.main_activity.getPreview().showToast(null, R.string.failed_to_save_photo_raw);
-        }
-        catch(IOException e) {
+        } catch(IOException e) {
 			if( MyDebug.LOG )
 				Log.e(TAG, "ioexception writing raw image file");
             e.printStackTrace();
 			this.main_activity.getPreview().showToast(null, R.string.failed_to_save_photo_raw);
-        }
-        finally {
+        } finally {
         	if( output != null ) {
 				try {
 					output.close();
