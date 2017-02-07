@@ -46,7 +46,7 @@ public class Encryptor {
 
 //    public boolean isRecordExifOn() {
 //        return this.preferences.getBoolean(PreferenceKeys.getRecordExifKeyKey(), false);
-//    }
+//    }4
 
     public String getPublicKeyFilename() {
         String res = this.preferences.getString(PreferenceKeys.getEncryptionInfoPreferenceKey(), "");
@@ -84,15 +84,11 @@ public class Encryptor {
     public ImageEncryptionStream getEncryptionStream(OutputStream out) throws IOException, CipherCreationFailedException {
         try {
             this.updatePublicKey();
-        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
-            e.printStackTrace();
-        }
-        ImageEncryptionStream encryptionStream = new ImageEncryptionStream(this.publicKey, out);
-        try {
+            ImageEncryptionStream encryptionStream = new ImageEncryptionStream(this.publicKey, out);
             encryptionStream.init();
-        } catch (InvalidCipherTextException | InvalidKeyException e) {
+            return encryptionStream;
+        } catch (InvalidCipherTextException | InvalidKeyException | NoSuchAlgorithmException | InvalidKeySpecException e) {
             throw new CipherCreationFailedException(e);
         }
-        return encryptionStream;
     }
 }

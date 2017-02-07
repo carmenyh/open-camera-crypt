@@ -1309,13 +1309,7 @@ public class ImageSaver extends Thread {
 
             if( picFile != null ) {
                 OutputStream outputStream = new FileOutputStream(picFile);
-                if (request.encrypt) {
-                    try {
-                        outputStream = this.main_activity.getEncryptor().getEncryptionStream(outputStream);
-                    } catch (Encryptor.CipherCreationFailedException e) {
-                        e.printStackTrace();
-                    }
-                }
+				outputStream = this.main_activity.getEncryptor().getEncryptionStream(outputStream);
                 try {
                     if( bitmap != null ) {
                         if( MyDebug.LOG )
@@ -1346,7 +1340,12 @@ public class ImageSaver extends Thread {
                 Log.e(TAG, "I/O error writing file: " + e.getMessage());
             e.printStackTrace();
             this.main_activity.getPreview().showToast(null, R.string.failed_to_save_photo);
-        }
+        } catch (Encryptor.CipherCreationFailedException e) {
+			if( MyDebug.LOG )
+				Log.e(TAG, "Unable to create encryption stream: " + e.getMessage());
+			e.printStackTrace();
+			this.main_activity.getPreview().showToast(null, R.string.failed_to_save_photo);
+		}
 
         if( bitmap != null ) {
             bitmap.recycle();
