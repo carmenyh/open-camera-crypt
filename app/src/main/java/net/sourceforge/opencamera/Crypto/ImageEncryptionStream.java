@@ -69,14 +69,19 @@ public class ImageEncryptionStream extends OutputStream {
         random.nextBytes(symKey);
         byte[] iv = new byte[8];
         random.nextBytes(iv);
-
+        byte[] magic = {(byte)0xde, (byte)0xad, (byte)0xbe, (byte)0xef};
         // Write out the symmetric key, then the initialization vector
         try {
             byte[] symKeyCrypt = rsaCipher.doFinal(symKey);
+            out.write(magic);
             out.write(symKeyCrypt.length);
+            out.write(magic);
             out.write(iv.length);
+            out.write(magic);
             out.write(symKeyCrypt);
+            out.write(magic);
             out.write(iv);
+            out.write(magic);
             out.flush();
         } catch (BadPaddingException e) {
             e.printStackTrace();
@@ -89,6 +94,7 @@ public class ImageEncryptionStream extends OutputStream {
         // Set up a cipher and ouput stream for encoding the image data
         StreamCipher cipher = new Salsa20Engine();
         cipher.init(true, new ParametersWithIV(new KeyParameter(symKey), iv));
+        out.write(magic);
         this.symOut = new CipherOutputStream(out, cipher);
 
         this.out = null;
