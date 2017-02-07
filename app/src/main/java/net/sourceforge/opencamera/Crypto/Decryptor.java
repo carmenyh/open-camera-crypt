@@ -30,9 +30,10 @@ import org.spongycastle.util.io.pem.PemReader;
 
 public class Decryptor {
 	public static void main(String[] args) {
-		PrivateKey privatekey = getPrivateKey();
-		File fi = new File(args[0]);
-		File fo = new File(args[1]);
+		String keyloc = args[0];
+		PrivateKey privatekey = getPrivateKey(keyloc);
+		File fi = new File(args[1]);
+		File fo = new File(args[2]);
 		godMethod(privatekey, fi, fo);
 	}
 	
@@ -159,9 +160,9 @@ public class Decryptor {
 		
 	}
 
-	public static PrivateKey getPrivateKey() {
+	public static PrivateKey getPrivateKey(String fileloc) {
 		try {
-			PemReader pempublic = new PemReader(new FileReader(new File("private.pem")));
+			PemReader pempublic = new PemReader(new FileReader(new File(fileloc)));
 			byte[] bytes = pempublic.readPemObject().getContent();
 			PrivateKey pub = KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(bytes));
 			pempublic.close();
