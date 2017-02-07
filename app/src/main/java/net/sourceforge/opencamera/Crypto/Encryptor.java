@@ -64,12 +64,12 @@ public class Encryptor {
 //            keyGened = true;
 //        }
 
-        this.publicKey = AsymmetricKeyReader.readKey(this.getPublicKeyFilename() + "/pub.pem");
+        this.publicKey = AsymmetricKeyReader.readKey(new File(this.getPublicKeyFilename(), "pub.pem").getAbsolutePath());
     }
 
     public String getEncryptedImageFolder() {
             String imageFolderPath = this.preferences.getString("sjdnfjhjkdhdjkn"/*PreferenceKeys.getEncryptedImageFolder()*/, "");
-            if (imageFolderPath == null || imageFolderPath.equals("")) {
+            if (imageFolderPath == null || imageFolderPath.isEmpty()) {
                 imageFolderPath = this.preferences.getString(PreferenceKeys.getSaveLocationPreferenceKey(), "OpenCamera");
             }
             return imageFolderPath;
@@ -84,17 +84,13 @@ public class Encryptor {
     public ImageEncryptionStream getEncryptionStream(OutputStream out) throws IOException, CipherCreationFailedException {
         try {
             this.updatePublicKey();
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        } catch (InvalidKeySpecException e) {
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
             e.printStackTrace();
         }
         ImageEncryptionStream encryptionStream = new ImageEncryptionStream(this.publicKey, out);
         try {
             encryptionStream.init();
-        } catch (InvalidCipherTextException e) {
-            throw new CipherCreationFailedException(e);
-        } catch (InvalidKeyException e) {
+        } catch (InvalidCipherTextException | InvalidKeyException e) {
             throw new CipherCreationFailedException(e);
         }
         return encryptionStream;

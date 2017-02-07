@@ -21,8 +21,8 @@ public class KeyGen {
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
 		//String password = getPassword();
-		String publicFile = "public.pem";
 		String privateFile = "private.pem";
+		String publicFile = "public.pem";
 		String SDFile = "SD.pem";
 		if (args.length == 3) {
 			privateFile = args[0];
@@ -89,6 +89,7 @@ public class KeyGen {
 			pempublic.writeObject(new PemObject("RSA PUBLIC KEY", publickey.getEncoded()));
 			pempublic.flush();
 			pempublic.close();
+
 			PemWriter pemprivate = new PemWriter(new FileWriter(new File(privateFile)));			
 			pemprivate.writeObject(new PemObject("RSA PRIVATE KEY", privatekey.getEncoded()));
 			pemprivate.flush();
