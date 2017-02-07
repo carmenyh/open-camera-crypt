@@ -34,7 +34,7 @@ import static android.R.attr.key;
  * Created by bgardon on 3/02/17.
  */
 
-public class ImageEncryptionStream extends OutputStream{
+public class ImageEncryptionStream extends OutputStream {
 
     private PublicKey publicKey;
     private OutputStream out;
