@@ -120,7 +120,7 @@ public class Decryptor {
 	private static byte[] decryptSymmetricKey(PrivateKey privatekey, byte[] key) {
 		
         try {
-        	Cipher rsaCipher = Cipher.getInstance("RSA");
+        	Cipher rsaCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
 			rsaCipher.init(Cipher.DECRYPT_MODE, privatekey);
 			byte[] keyE = rsaCipher.doFinal(key);
 			return keyE;

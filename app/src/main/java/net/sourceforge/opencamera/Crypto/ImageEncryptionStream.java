@@ -55,7 +55,7 @@ public class ImageEncryptionStream extends OutputStream {
         // Setup a cipher and ouput stream for encrypting the symmetric key and initialization vector
         Cipher rsaCipher;
         try {
-            rsaCipher = Cipher.getInstance("RSA");
+            rsaCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
             rsaCipher.init(Cipher.ENCRYPT_MODE, publicKey);
         } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
             e.printStackTrace();

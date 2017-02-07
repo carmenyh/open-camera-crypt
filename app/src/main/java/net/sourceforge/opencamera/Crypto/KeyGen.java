@@ -49,7 +49,7 @@ public class KeyGen {
 		try {
 			KeyPairGenerator kg;
 			kg = KeyPairGenerator.getInstance("RSA");
-			kg.initialize(512);
+			kg.initialize(1024);
 			return kg.generateKeyPair();
 		} catch (NoSuchAlgorithmException e) {
 			// TODO Auto-generated catch block
