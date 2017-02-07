@@ -1,3 +1,5 @@
+package net.sourceforge.opencamera.Crypto;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -29,16 +31,9 @@ import org.spongycastle.util.io.pem.PemReader;
 public class Decryptor {
 	public static void main(String[] args) {
 		PrivateKey privatekey = getPrivateKey();
-		/*
-		File dir = new File("blah");
-		for (File f : dir.listFiles()) {
-		*/
-
-			
-			
-			/*
-		}
-		*/
+		File fi = new File(args[0]);
+		File fo = new File(args[1]);
+		godMethod(privatekey, fi, fo);
 	}
 	
 	public static byte[] godMethod(PrivateKey privatekey, File fi, File fo) {
