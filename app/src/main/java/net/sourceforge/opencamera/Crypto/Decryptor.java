@@ -90,8 +90,6 @@ public class Decryptor {
 	}
 	
 	public static byte[] getEncryptedPhoto(FileInputStream f, long length) {
-		System.out.println(length);
-		
         try {
         	byte[] photo = new byte[(int) length];
 			f.read(photo);
@@ -120,10 +118,12 @@ public class Decryptor {
 	private static byte[] decryptSymmetricKey(PrivateKey privatekey, byte[] key) {
 		
         try {
-        	Cipher rsaCipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
+        	Cipher rsaCipher = Cipher.getInstance("RSA/ECB/NoPadding");
 			rsaCipher.init(Cipher.DECRYPT_MODE, privatekey);
-			byte[] keyE = rsaCipher.doFinal(key);
-			return keyE;
+			byte[] keyWithPadding = rsaCipher.doFinal(key);
+			byte[] res = new byte[32];
+			System.arraycopy(keyWithPadding, keyWithPadding.length - 32, res, 0, 32);
+			return res;
 		} catch (InvalidKeyException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

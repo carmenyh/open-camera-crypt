@@ -48,6 +48,15 @@ public class ImageEncryptionStream extends OutputStream {
         this.out = out;
     }
 
+    // just in case we need it for debugging
+    private void printInHex(byte[] data) {
+        StringBuilder sb = new StringBuilder();
+        for (byte b : data) {
+            sb.append(String.format("%02X ", b));
+        }
+        System.out.println(sb.toString());
+    }
+
     public void init() throws IOException, InvalidCipherTextException, InvalidKeyException {
         if (publicKey == null || out == null) {
             throw new IllegalStateException("Already initialized");
@@ -55,7 +64,7 @@ public class ImageEncryptionStream extends OutputStream {
         // Setup a cipher and ouput stream for encrypting the symmetric key and initialization vector
         Cipher rsaCipher;
         try {
-            rsaCipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
+            rsaCipher = Cipher.getInstance("RSA/ECB/NoPadding");
             rsaCipher.init(Cipher.ENCRYPT_MODE, publicKey);
         } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
             e.printStackTrace();
