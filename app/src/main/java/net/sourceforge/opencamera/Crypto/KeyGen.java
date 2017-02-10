@@ -5,34 +5,40 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.util.Scanner;
 
-import javax.crypto.Cipher;
-
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.spongycastle.util.io.pem.PemObject;
 import org.spongycastle.util.io.pem.PemWriter;
 
 public class KeyGen {
 
 	public static void main(String[] args) {
-		// TODO Auto-generated method stub
-		//String password = getPassword();
-		String privateFile = "private.pem";
-		String publicFile = "public.pem";
-		String SDFile = "SD.pem";
-		if (args.length == 3) {
-			privateFile = args[0];
-			publicFile = args[1];
-			SDFile = args[2];
+		DefaultParser parser = new DefaultParser();
+		Options options = new Options();
+		options.addOption("p", "public", true, "The location at which the generated public key should be stored");
+		options.addOption("s", "secret", true, "The location at which the generated private key should be stored");
+		options.addOption("d", "device", true, "The location at which a copy of the public key should be stored for the target device");
+		CommandLine commandLine;
+		try {
+			commandLine = parser.parse(options, args);
+		} catch (ParseException e) {
+			e.printStackTrace();
+			return;
 		}
+
+		String publicKeyFilename = commandLine.getOptionValue('p', "pub.pem");
+		String privateKeyFilename = commandLine.getOptionValue('s', "pub.pem");
+		String devicePublicKeyFilename = commandLine.getOptionValue('d');
+
 		KeyPair keys = generateKeys();
-		//byte[] encrypted = encryptPrivate(keys.getPrivate(), password);
-		writeKeysToComputer(keys.getPublic(), publicFile, keys.getPrivate(), privateFile);
-		writeKeyToSD(keys.getPublic(), SDFile);
+		saveKeysToComputer(keys.getPublic(), publicKeyFilename, keys.getPrivate(), privateKeyFilename);
+		saveKeyForDevice(keys.getPublic(), devicePublicKeyFilename);
 	}
 
 	/*
@@ -48,18 +54,16 @@ public class KeyGen {
 	public static KeyPair generateKeys() {
 		try {
 			KeyPairGenerator kg;
-			kg = KeyPairGenerator.getInstance("RSA");
+			kg = KeyPairGenerator.getInstance("RSA/ECB/NoPadding");
 			kg.initialize(1024);
 			return kg.generateKeyPair();
 		} catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return null;
 	}
-	/*
-	 * Implement Later, encryption of private key to be stored
-	 */
+
+	// TODO: Implement Later, encryption of private key to be stored
 	/*
 	private static byte[] encryptPrivate(PrivateKey privatekey, String password) {
 		// Hash password
@@ -83,7 +87,8 @@ public class KeyGen {
 		return null;
 	}
 	*/
-	public static void writeKeysToComputer(PublicKey publickey, String publicFile, PrivateKey privatekey, String privateFile) {
+
+	public static void saveKeysToComputer(PublicKey publickey, String publicFile, PrivateKey privatekey, String privateFile) {
 		try {
 			PemWriter pempublic = new PemWriter(new FileWriter(new File(publicFile)));
 			pempublic.writeObject(new PemObject("RSA PUBLIC KEY", publickey.getEncoded()));
@@ -98,7 +103,8 @@ public class KeyGen {
 			e.printStackTrace();
 		}
 	}
-	public static void writeKeyToSD(PublicKey publickey, String SDFile) {
+
+	public static void saveKeyForDevice(PublicKey publickey, String SDFile) {
 		try {
 			PemWriter pempublic = new PemWriter(new FileWriter(new File(SDFile)));
 			pempublic.writeObject(new PemObject("RSA PUBLIC KEY", publickey.getEncoded()));
@@ -107,8 +113,5 @@ public class KeyGen {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		// TODO Auto-generated method stub
-		
 	}
-	
 }
