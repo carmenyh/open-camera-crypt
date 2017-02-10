@@ -44,10 +44,6 @@ public class Encryptor {
         return this.preferences.getBoolean(PreferenceKeys.getEncryptPreferenceKey(), false);
     }
 
-//    public boolean isRecordExifOn() {
-//        return this.preferences.getBoolean(PreferenceKeys.getRecordExifKeyKey(), false);
-//    }4
-
     public String getPublicKeyFilename() {
         String res = this.preferences.getString(PreferenceKeys.getEncryptionInfoPreferenceKey(), "");
         System.err.println(res);
@@ -57,13 +53,6 @@ public class Encryptor {
 
     // boolean keyGened = false;
     public void updatePublicKey() throws NoSuchAlgorithmException, IOException, InvalidKeySpecException {
-//        if (!keyGened) {
-//            KeyPair keys = KeyGen.generateKeys();
-//            KeyGen.writeKeysToComputer(keys.getPublic(), this.getPublicKeyFilename() + "/pub.pem",
-//                    keys.getPrivate(), this.getPublicKeyFilename() + "/priv.pem");
-//            keyGened = true;
-//        }
-
         this.publicKey = AsymmetricKeyReader.readKey(new File(this.getPublicKeyFilename(), "pub.pem").getAbsolutePath());
     }
 
