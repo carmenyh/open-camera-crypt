@@ -33,7 +33,7 @@ public class KeyGen {
 		}
 
 		String publicKeyFilename = commandLine.getOptionValue('p', "pub.pem");
-		String privateKeyFilename = commandLine.getOptionValue('s', "pub.pem");
+		String privateKeyFilename = commandLine.getOptionValue('s', "priv.pem");
 		String devicePublicKeyFilename = commandLine.getOptionValue('d');
 
 		KeyPair keys = generateKeys();
