@@ -5,8 +5,8 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
+import java.io.FilenameFilter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
@@ -19,7 +19,10 @@ import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 
-import org.spongycastle.crypto.CipherParameters;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.spongycastle.crypto.StreamCipher;
 import org.spongycastle.crypto.engines.Salsa20Engine;
 import org.spongycastle.crypto.io.CipherInputStream;
@@ -28,16 +31,57 @@ import org.spongycastle.crypto.params.KeyParameter;
 import org.spongycastle.crypto.params.ParametersWithIV;
 import org.spongycastle.util.io.pem.PemReader;
 
+import org.apache.commons.cli;
+
 public class Decryptor {
 	public static void main(String[] args) {
-		String keyloc = args[0];
-		PrivateKey privatekey = getPrivateKey(keyloc);
-		File fi = new File(args[1]);
-		File fo = new File(args[2]);
-		godMethod(privatekey, fi, fo);
+		DefaultParser parser = new DefaultParser();
+        Options options = new Options();
+        options.addOption("s", "secret", true, "The path of the private key file to be used to decrypt the image");
+        options.addOption("e", "encrypted-file", true, "The path of the encrypted file to be decrypted");
+        options.addOption("o", "output-file", true, "The path at which the decrypted file should be written");
+        options.addOption("d", "encrypted-dir", true, "The path of a directory containing encrypted files with the .encrypted extension");
+        CommandLine commandLine;
+        try {
+            commandLine = parser.parse(options, args);
+        } catch (ParseException e) {
+            e.printStackTrace();
+            return;
+        }
+
+        String privateKeyFilename = commandLine.getOptionValue('s', "priv.pem");
+        String encryptedFileFilename = commandLine.getOptionValue('e');
+        String encryptedFilesDir = commandLine.getOptionValue('d');
+
+		PrivateKey privatekey = getPrivateKey(privateKeyFilename);
+
+        if (encryptedFileFilename != null) {
+            String outputFileFilename = commandLine.getOptionValue('o',
+                    encryptedFileFilename.substring(0, encryptedFileFilename.length() - ".encrypted".length()));
+
+            File fi = new File(encryptedFileFilename);
+            File fo = new File(outputFileFilename);
+            decryptSingleFile(privatekey, fi, fo);
+        }
+
+        if (encryptedFilesDir != null) {
+            File dir = new File(encryptedFilesDir);
+            File[] files = dir.listFiles(new FilenameFilter() {
+                @Override
+                public boolean accept(File dir, String name) {
+                    return name.endsWith(".encrypted");
+                }
+            });
+
+            for (File encryptedFile : files) {
+                String filename = encryptedFile.getAbsolutePath();
+                String decryptFilename = filename.substring(0, filename.length() - ".encrypted".length());
+                decryptSingleFile(privatekey, encryptedFile, new File(decryptFilename));
+            }
+        }
 	}
 	
-	public static byte[] godMethod(PrivateKey privatekey, File fi, File fo) {
+	public static byte[] decryptSingleFile(PrivateKey privatekey, File fi, File fo) {
 		try {
 			long length = fi.length();
 			FileInputStream fr = new FileInputStream(fi);
@@ -51,13 +95,7 @@ public class Decryptor {
 			byte[] photo =  getEncryptedPhoto(fr, length);
 			FileOutputStream fos = new FileOutputStream(fo);
 			storeDecryptPhoto(key, iv, fos, photo);
-			
-			
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return null;
@@ -116,7 +154,6 @@ public class Decryptor {
 	}
 
 	private static byte[] decryptSymmetricKey(PrivateKey privatekey, byte[] key) {
-		
         try {
         	Cipher rsaCipher = Cipher.getInstance("RSA/ECB/NoPadding");
 			rsaCipher.init(Cipher.DECRYPT_MODE, privatekey);
@@ -124,19 +161,7 @@ public class Decryptor {
 			byte[] res = new byte[32];
 			System.arraycopy(keyWithPadding, keyWithPadding.length - 32, res, 0, 32);
 			return res;
-		} catch (InvalidKeyException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (NoSuchPaddingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IllegalBlockSizeException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (BadPaddingException e) {
+		} catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchPaddingException | BadPaddingException | IllegalBlockSizeException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -167,19 +192,10 @@ public class Decryptor {
 			PrivateKey pub = KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(bytes));
 			pempublic.close();
 			return pub;
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (InvalidKeySpecException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (NoSuchAlgorithmException e) {
+		} catch (IOException | InvalidKeySpecException | NoSuchAlgorithmException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		return null;
+        return null;
 	}
 }
