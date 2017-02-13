@@ -1,9 +1,7 @@
 package net.sourceforge.opencamera.Crypto;
 
-import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FilenameFilter;
@@ -27,7 +25,6 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.spongycastle.crypto.StreamCipher;
 import org.spongycastle.crypto.engines.Salsa20Engine;
-import org.spongycastle.crypto.io.CipherInputStream;
 import org.spongycastle.crypto.io.CipherOutputStream;
 import org.spongycastle.crypto.params.KeyParameter;
 import org.spongycastle.crypto.params.ParametersWithIV;
@@ -108,14 +105,14 @@ public class Decryptor {
 
 			// Decrypt and write out the photo
 			FileOutputStream fos = new FileOutputStream(fo);
-			storeDecryptPhoto(key, iv, fos, fr, imageLength);
+			decryptAndStorePhoto(key, iv, fos, fr, imageLength);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 		return null;
 	}
 
-	public static void storeDecryptPhoto(byte[] symKey, byte[] iv, FileOutputStream out, InputStream in, int length) throws IOException {
+	public static void decryptAndStorePhoto(byte[] symKey, byte[] iv, FileOutputStream out, InputStream in, int length) throws IOException {
         StreamCipher cipher = new Salsa20Engine();
         cipher.init(false, new ParametersWithIV(new KeyParameter(symKey), iv));
         CipherOutputStream symOut = new CipherOutputStream(out, cipher);
