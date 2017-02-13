@@ -1,5 +1,6 @@
 package net.sourceforge.opencamera.Crypto;
 
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -7,6 +8,7 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
@@ -89,74 +91,50 @@ public class Decryptor {
 
 	public static byte[] decryptSingleFile(PrivateKey privatekey, File fi, File fo) {
 		try {
-			long length = fi.length();
-			FileInputStream fr = new FileInputStream(fi);
+			long fileLength = fi.length();
+			InputStream fr = new FileInputStream(fi);
+
+			// Calculate the length of the various parts of the encrypted file
 			int sklength = fr.read();
 			int ivlength = fr.read();
-			
-			length = length - (sklength + ivlength + 1 + 1);
-			byte[] key = getSymmetricKey(fr, sklength);
-			key = decryptSymmetricKey(privatekey, key);
-			byte[] iv = getIV(fr, ivlength);
-			byte[] photo =  getEncryptedPhoto(fr, length);
+			int imageLength = (int)fileLength - (sklength + ivlength + 1 + 1);
+
+			// Read the symmetric key
+			byte[] encryptedKey = new byte[sklength];
+			fr.read(encryptedKey);
+			byte[] key = decryptSymmetricKey(privatekey, encryptedKey);
+
+			// Read the initialization vector
+			byte[] iv = new byte[ivlength];
+			fr.read(iv);
+
+			// Read the photo bytes
+			byte[] photo = new byte[imageLength];
+			fr.read(photo);
+
+			// Decrypt and write out the photo
 			FileOutputStream fos = new FileOutputStream(fo);
-			storeDecryptPhoto(key, iv, fos, photo);
+			storeDecryptPhoto(key, iv, fos, fr, imageLength);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 		return null;
 	}
 
-	public static void storeDecryptPhoto(byte[] symKey, byte[] iv, FileOutputStream out, byte[] encryptedphoto) throws IOException {
+	public static void storeDecryptPhoto(byte[] symKey, byte[] iv, FileOutputStream out, InputStream in, int length) throws IOException {
         StreamCipher cipher = new Salsa20Engine();
         cipher.init(false, new ParametersWithIV(new KeyParameter(symKey), iv));
         CipherOutputStream symOut = new CipherOutputStream(out, cipher);
-        symOut.write(encryptedphoto);;
+
+		byte[] buffer = new byte[2048];
+		long bytesRead = 0;
+		while (bytesRead < length) {
+			int read = in.read(buffer);
+			symOut.write(buffer, 0, read);
+			bytesRead += read;
+		}
+
         symOut.close(); 
-	}
-
-	private static byte[] decryptPhoto(FileInputStream f, byte[] key, byte[] iv, long length) {
-		
-        try {
-        	byte[] photo = new byte[(int) length];
-            StreamCipher cipher = new Salsa20Engine();
-            cipher.init(false, new ParametersWithIV(new KeyParameter(key), iv));
-            CipherInputStream input = new CipherInputStream(f, cipher);
-			input.read(photo);
-			input.close();
-			return photo;
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-        return null;
-		
-	}
-	
-	public static byte[] getEncryptedPhoto(FileInputStream f, long length) {
-        try {
-        	byte[] photo = new byte[(int) length];
-			f.read(photo);
-			return photo;
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-        return null;
-		
-	}
-
-	private static byte[] getIV(FileInputStream f, int ivlength) {
-		
-		try {
-			byte[] buf = new byte[ivlength];
-			f.read(buf);
-			return buf;
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		return null;
 	}
 
 	private static byte[] decryptSymmetricKey(PrivateKey privatekey, byte[] key) {
@@ -168,27 +146,9 @@ public class Decryptor {
 			System.arraycopy(keyWithPadding, keyWithPadding.length - 32, res, 0, 32);
 			return res;
 		} catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchPaddingException | BadPaddingException | IllegalBlockSizeException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
         return null;
-        
-		// TODO Auto-generated method stub
-		
-	}
-
-	private static byte[] getSymmetricKey(FileInputStream f, int length) {
-		// TODO Auto-generated method stub
-		try {
-			byte[] buf = new byte[length];
-			f.read(buf);
-			return buf;
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		return null;
-		
 	}
 
 	public static PrivateKey getPrivateKey(String fileloc) {
