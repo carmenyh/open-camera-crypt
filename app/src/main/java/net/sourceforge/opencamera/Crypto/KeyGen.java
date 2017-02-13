@@ -3,11 +3,13 @@ package net.sourceforge.opencamera.Crypto;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.spec.RSAKeyGenParameterSpec;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
@@ -55,9 +57,9 @@ public class KeyGen {
 		try {
 			KeyPairGenerator kg;
 			kg = KeyPairGenerator.getInstance("RSA");
-			kg.initialize(1024);
+			kg.initialize(new RSAKeyGenParameterSpec(1024, RSAKeyGenParameterSpec.F4));
 			return kg.generateKeyPair();
-		} catch (NoSuchAlgorithmException e) {
+		} catch (NoSuchAlgorithmException | InvalidAlgorithmParameterException e) {
 			e.printStackTrace();
 		}
 		return null;
