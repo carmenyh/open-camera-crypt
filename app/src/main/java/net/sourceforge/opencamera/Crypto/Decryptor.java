@@ -54,7 +54,7 @@ public class Decryptor {
 		if (paths.length != 2) {
 			printAndExit("Incorrect number of arguments.");
 		}
-		File inputPath = new File(paths[1]);
+		File inputPath = new File(paths[0]);
 		File outputPath = new File(paths[1]);
 
 		boolean useDirs = commandLine.hasOption('d');
@@ -74,7 +74,7 @@ public class Decryptor {
 				decryptSingleFile(privateKey, encryptedFile, new File(outputPath, outFilename));
 			}
 		} else {
-			if (!inputPath.isFile() || !outputPath.isFile()) {
+			if (inputPath.isDirectory() || outputPath.isDirectory()) {
 				printAndExit("Input and output paths must be files.");
 			}
 			decryptSingleFile(privateKey, inputPath, outputPath);
@@ -86,7 +86,7 @@ public class Decryptor {
 		System.exit(1);
 	}
 
-	public static byte[] decryptSingleFile(PrivateKey privatekey, File fi, File fo) {
+	private static byte[] decryptSingleFile(PrivateKey privatekey, File fi, File fo) {
 		try {
 			long fileLength = fi.length();
 			InputStream fr = new FileInputStream(fi);
@@ -120,7 +120,7 @@ public class Decryptor {
 		return null;
 	}
 
-	public static void decryptAndStorePhoto(byte[] symKey, byte[] iv, FileOutputStream out, InputStream in, int length) throws IOException {
+	private static void decryptAndStorePhoto(byte[] symKey, byte[] iv, FileOutputStream out, InputStream in, int length) throws IOException {
         StreamCipher cipher = new Salsa20Engine();
         cipher.init(false, new ParametersWithIV(new KeyParameter(symKey), iv));
         CipherOutputStream symOut = new CipherOutputStream(out, cipher);
@@ -136,21 +136,21 @@ public class Decryptor {
         symOut.close(); 
 	}
 
-	private static byte[] decryptSymmetricKey(PrivateKey privatekey, byte[] key) {
+	private static byte[] decryptSymmetricKey(PrivateKey privatekey, byte[] encryptedKey) {
         try {
         	Cipher rsaCipher = Cipher.getInstance("RSA/ECB/NoPadding");
 			rsaCipher.init(Cipher.DECRYPT_MODE, privatekey);
-			byte[] keyWithPadding = rsaCipher.doFinal(key);
-			byte[] res = new byte[32];
-			System.arraycopy(keyWithPadding, keyWithPadding.length - 32, res, 0, 32);
-			return res;
+			byte[] decryptedBlock = rsaCipher.doFinal(encryptedKey);
+			byte[] symmetricKey = new byte[32];
+			System.arraycopy(decryptedBlock, decryptedBlock.length - symmetricKey.length, symmetricKey, 0, symmetricKey.length);
+			return symmetricKey;
 		} catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchPaddingException | BadPaddingException | IllegalBlockSizeException e) {
 			e.printStackTrace();
 		}
         return null;
 	}
 
-	public static PrivateKey getPrivateKey(String fileloc) {
+	private static PrivateKey getPrivateKey(String fileloc) {
 		try {
 			PemReader pempublic = new PemReader(new FileReader(new File(fileloc)));
 			byte[] bytes = pempublic.readPemObject().getContent();
