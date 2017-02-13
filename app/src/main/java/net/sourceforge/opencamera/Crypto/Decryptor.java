@@ -74,7 +74,7 @@ public class Decryptor {
 				decryptSingleFile(privateKey, encryptedFile, new File(outputPath, outFilename));
 			}
 		} else {
-			if (inputPath.isDirectory() || outputPath.isDirectory()) {
+			if (!inputPath.isFile() || outputPath.isDirectory()) {
 				printAndExit("Input and output paths must be files.");
 			}
 			decryptSingleFile(privateKey, inputPath, outputPath);
