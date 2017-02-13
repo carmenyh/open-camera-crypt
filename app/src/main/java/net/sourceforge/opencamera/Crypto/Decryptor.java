@@ -31,8 +31,6 @@ import org.spongycastle.crypto.params.KeyParameter;
 import org.spongycastle.crypto.params.ParametersWithIV;
 import org.spongycastle.util.io.pem.PemReader;
 
-import org.apache.commons.cli;
-
 public class Decryptor {
 	public static void main(String[] args) {
 		DefaultParser parser = new DefaultParser();
