@@ -31,16 +31,12 @@ import org.spongycastle.crypto.params.KeyParameter;
 import org.spongycastle.crypto.params.ParametersWithIV;
 import org.spongycastle.util.io.pem.PemReader;
 
-import org.apache.commons.cli;
-
 public class Decryptor {
 	public static void main(String[] args) {
 		DefaultParser parser = new DefaultParser();
         Options options = new Options();
         options.addOption("s", "secret", true, "The path of the private key file to be used to decrypt the image");
-        options.addOption("e", "encrypted-file", true, "The path of the encrypted file to be decrypted");
-        options.addOption("o", "output-file", true, "The path at which the decrypted file should be written");
-        options.addOption("d", "encrypted-dir", true, "The path of a directory containing encrypted files with the .encrypted extension");
+        options.addOption("d", "use-directories", false, "Decrypt all encrypted photos in a directory");
         CommandLine commandLine;
         try {
             commandLine = parser.parse(options, args);
@@ -49,38 +45,48 @@ public class Decryptor {
             return;
         }
 
-        String privateKeyFilename = commandLine.getOptionValue('s', "priv.pem");
-        String encryptedFileFilename = commandLine.getOptionValue('e');
-        String encryptedFilesDir = commandLine.getOptionValue('d');
+		String privateKeyFilepath = commandLine.getOptionValue('s', "");
+		if (privateKeyFilepath.isEmpty()) {
+			printAndExit("No private key file specified.");
+		}
+		PrivateKey privateKey = getPrivateKey(privateKeyFilepath);
 
-		PrivateKey privatekey = getPrivateKey(privateKeyFilename);
+		String[] paths = commandLine.getArgs();
+		if (paths.length != 2) {
+			printAndExit("Incorrect number of arguments.");
+		}
+		File inputPath = new File(paths[1]);
+		File outputPath = new File(paths[1]);
 
-        if (encryptedFileFilename != null) {
-            String outputFileFilename = commandLine.getOptionValue('o',
-                    encryptedFileFilename.substring(0, encryptedFileFilename.length() - ".encrypted".length()));
-
-            File fi = new File(encryptedFileFilename);
-            File fo = new File(outputFileFilename);
-            decryptSingleFile(privatekey, fi, fo);
-        }
-
-        if (encryptedFilesDir != null) {
-            File dir = new File(encryptedFilesDir);
-            File[] files = dir.listFiles(new FilenameFilter() {
-                @Override
-                public boolean accept(File dir, String name) {
-                    return name.endsWith(".encrypted");
-                }
-            });
-
-            for (File encryptedFile : files) {
-                String filename = encryptedFile.getAbsolutePath();
-                String decryptFilename = filename.substring(0, filename.length() - ".encrypted".length());
-                decryptSingleFile(privatekey, encryptedFile, new File(decryptFilename));
-            }
-        }
+		boolean useDirs = commandLine.hasOption('d');
+		if (useDirs) {
+			if (!inputPath.isDirectory() || !outputPath.isDirectory()) {
+				printAndExit("Input and output paths must be directories.");
+			}
+			File[] files = inputPath.listFiles(new FilenameFilter() {
+				@Override
+				public boolean accept(File dir, String name) {
+					return name.endsWith(".encrypted");
+				}
+			});
+			for (File encryptedFile : files) {
+				String inFilename = encryptedFile.getName();
+				String outFilename = inFilename.substring(0, inFilename.length() - ".encrypted".length());
+				decryptSingleFile(privateKey, encryptedFile, new File(outputPath, outFilename));
+			}
+		} else {
+			if (!inputPath.isFile() || !outputPath.isFile()) {
+				printAndExit("Input and output paths must be files.");
+			}
+			decryptSingleFile(privateKey, inputPath, outputPath);
+		}
 	}
-	
+
+	private static void printAndExit(String message) {
+		System.err.println(message);
+		System.exit(1);
+	}
+
 	public static byte[] decryptSingleFile(PrivateKey privatekey, File fi, File fo) {
 		try {
 			long length = fi.length();
