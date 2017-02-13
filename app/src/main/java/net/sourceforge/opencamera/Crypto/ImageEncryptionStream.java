@@ -1,27 +1,18 @@
 package net.sourceforge.opencamera.Crypto;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.SecureRandom;
 
-import org.spongycastle.crypto.AsymmetricBlockCipher;
 import org.spongycastle.crypto.InvalidCipherTextException;
 import org.spongycastle.crypto.StreamCipher;
-import org.spongycastle.crypto.engines.RSAEngine;
 import org.spongycastle.crypto.engines.Salsa20Engine;
 import org.spongycastle.crypto.io.CipherOutputStream;
-import org.spongycastle.crypto.params.AsymmetricKeyParameter;
 import org.spongycastle.crypto.params.KeyParameter;
 import org.spongycastle.crypto.params.ParametersWithIV;
-import org.spongycastle.crypto.util.PublicKeyFactory;
-import org.spongycastle.util.io.pem.PemObject;
-import org.spongycastle.util.io.pem.PemObjectParser;
-import org.spongycastle.util.io.pem.PemReader;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -86,10 +77,7 @@ public class ImageEncryptionStream extends OutputStream {
             out.write(symKeyCrypt);
             out.write(iv);
             out.flush();
-        } catch (BadPaddingException e) {
-            e.printStackTrace();
-            return;
-        } catch (IllegalBlockSizeException e) {
+        } catch (BadPaddingException | IllegalBlockSizeException e) {
             e.printStackTrace();
             return;
         }
