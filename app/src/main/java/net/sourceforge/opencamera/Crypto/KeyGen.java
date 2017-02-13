@@ -34,7 +34,7 @@ public class KeyGen {
 
 		String publicKeyFilename = commandLine.getOptionValue('p', "pub.pem");
 		String privateKeyFilename = commandLine.getOptionValue('s', "priv.pem");
-		String devicePublicKeyFilename = commandLine.getOptionValue('d');
+		String devicePublicKeyFilename = commandLine.getOptionValue('d', "pub.pem");
 
 		KeyPair keys = generateKeys();
 		saveKeysToComputer(keys.getPublic(), publicKeyFilename, keys.getPrivate(), privateKeyFilename);
@@ -54,7 +54,7 @@ public class KeyGen {
 	public static KeyPair generateKeys() {
 		try {
 			KeyPairGenerator kg;
-			kg = KeyPairGenerator.getInstance("RSA/ECB/NoPadding");
+			kg = KeyPairGenerator.getInstance("RSA");
 			kg.initialize(1024);
 			return kg.generateKeyPair();
 		} catch (NoSuchAlgorithmException e) {
