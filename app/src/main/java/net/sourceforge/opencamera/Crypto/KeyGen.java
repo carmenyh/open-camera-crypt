@@ -90,15 +90,15 @@ public class KeyGen {
 
 	public static void saveKeysToComputer(PublicKey publickey, String publicFile, PrivateKey privatekey, String privateFile) {
 		try {
+			PemWriter pemprivate = new PemWriter(new FileWriter(new File(privateFile)));
+			pemprivate.writeObject(new PemObject("RSA PRIVATE KEY", privatekey.getEncoded()));
+			pemprivate.flush();
+			pemprivate.close();
+			
 			PemWriter pempublic = new PemWriter(new FileWriter(new File(publicFile)));
 			pempublic.writeObject(new PemObject("RSA PUBLIC KEY", publickey.getEncoded()));
 			pempublic.flush();
 			pempublic.close();
-
-			PemWriter pemprivate = new PemWriter(new FileWriter(new File(privateFile)));			
-			pemprivate.writeObject(new PemObject("RSA PRIVATE KEY", privatekey.getEncoded()));
-			pemprivate.flush();
-			pemprivate.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
