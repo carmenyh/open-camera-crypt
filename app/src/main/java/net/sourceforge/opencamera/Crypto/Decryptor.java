@@ -93,16 +93,18 @@ public class Decryptor {
 
 			// Read the symmetric key
 			byte[] encryptedKey = new byte[sklength];
-			fr.read(encryptedKey);
+			int encKeyBytesRead = 0;
+			while (encKeyBytesRead < sklength) {
+				encKeyBytesRead += fr.read(encryptedKey, encKeyBytesRead, sklength - encKeyBytesRead);
+			}
 			byte[] key = decryptSymmetricKey(privatekey, encryptedKey);
 
 			// Read the initialization vector
 			byte[] iv = new byte[ivlength];
-			fr.read(iv);
-
-			// Read the photo bytes
-			byte[] photo = new byte[imageLength];
-			fr.read(photo);
+			int ivBytesRead = 0;
+			while (ivBytesRead < ivlength) {
+				ivBytesRead += fr.read(iv, ivBytesRead, ivlength - ivBytesRead);
+			}
 
 			// Decrypt and write out the photo
 			FileOutputStream fos = new FileOutputStream(fo);
