@@ -35,7 +35,7 @@ public class Decryptor {
 		DefaultParser parser = new DefaultParser();
         Options options = new Options();
         options.addOption("s", "secret", true, "The path of the private key file to be used to decrypt the image");
-        options.addOption("d", "use-directories", false, "Decrypt all encrypted photos in a directory");
+        options.addOption("d", "use-directory", false, "Decrypt all encrypted photos in a directory");
         CommandLine commandLine;
         try {
             commandLine = parser.parse(options, args);
@@ -57,10 +57,14 @@ public class Decryptor {
 		File inputPath = new File(paths[0]);
 		File outputPath = new File(paths[1]);
 
-		boolean useDirs = commandLine.hasOption('d');
-		if (useDirs) {
-			if (!inputPath.isDirectory() || !outputPath.isDirectory()) {
-				printAndExit("Input and output paths must be directories.");
+		if (!outputPath.isDirectory()) {
+			printAndExit("Output path must be a directory.");
+		}
+
+		boolean useDir = commandLine.hasOption('d');
+		if (useDir) {
+			if (!inputPath.isDirectory()) {
+				printAndExit("Input path must be a directory.");
 			}
 			File[] files = inputPath.listFiles(new FilenameFilter() {
 				@Override
@@ -69,13 +73,11 @@ public class Decryptor {
 				}
 			});
 			for (File encryptedFile : files) {
-				String inFilename = encryptedFile.getName();
-				String outFilename = inFilename.substring(0, inFilename.length() - ".encrypted".length());
-				decryptSingleFile(privateKey, encryptedFile, new File(outputPath, outFilename));
+				decryptSingleFile(privateKey, encryptedFile, outputPath);
 			}
 		} else {
-			if (!inputPath.isFile() || outputPath.isDirectory()) {
-				printAndExit("Input and output paths must be files.");
+			if (!inputPath.isFile()) {
+				printAndExit("Input path must be a file.");
 			}
 			decryptSingleFile(privateKey, inputPath, outputPath);
 		}
@@ -86,15 +88,16 @@ public class Decryptor {
 		System.exit(1);
 	}
 
-	private static byte[] decryptSingleFile(PrivateKey privatekey, File fi, File fo) {
+	private static byte[] decryptSingleFile(PrivateKey privatekey, File fileIn, File dirOut) {
 		try {
-			long fileLength = fi.length();
-			InputStream fr = new FileInputStream(fi);
+			long fileLength = fileIn.length();
+			InputStream fr = new FileInputStream(fileIn);
 
 			// Calculate the length of the various parts of the encrypted file
 			int sklength = fr.read();
 			int ivlength = fr.read();
-			int imageLength = (int)fileLength - (sklength + ivlength + 1 + 1);
+			//int imageLength = (int)fileLength - (sklength + ivlength + 1 + 1);
+			int encryptedLength = (int)fileLength - (sklength + ivlength + 1 + 1);
 
 			// Read the symmetric key
 			byte[] encryptedKey = new byte[sklength];
@@ -112,18 +115,34 @@ public class Decryptor {
 			}
 
 			// Decrypt and write out the photo
-			FileOutputStream fos = new FileOutputStream(fo);
-			decryptAndStorePhoto(key, iv, fos, fr, imageLength);
+			decryptAndStorePhoto(key, iv, dirOut, fr, encryptedLength);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 		return null;
 	}
 
-	private static void decryptAndStorePhoto(byte[] symKey, byte[] iv, FileOutputStream out, InputStream in, int length) throws IOException {
+	private static void decryptAndStorePhoto(byte[] symKey, byte[] iv, File dirOut, InputStream in, int length) throws IOException {
         StreamCipher cipher = new Salsa20Engine();
         cipher.init(false, new ParametersWithIV(new KeyParameter(symKey), iv));
-        CipherOutputStream symOut = new CipherOutputStream(out, cipher);
+
+		// Read in the output filename length
+		byte[] outputFilenameLengthBytes = new byte[4];
+		in.read(outputFilenameLengthBytes);
+		int outFilenameLength = cipher.returnByte(outputFilenameLengthBytes[0]);
+		outFilenameLength += cipher.returnByte(outputFilenameLengthBytes[1]) << 8;
+		outFilenameLength += cipher.returnByte(outputFilenameLengthBytes[2]) << 16;
+		outFilenameLength += cipher.returnByte(outputFilenameLengthBytes[3]) << 24;
+
+		byte[] outputFilenameBytes = new byte[outFilenameLength];
+		in.read(outputFilenameBytes);
+		for (int i = 0; i < outFilenameLength; i++) {
+			outputFilenameBytes[i] = cipher.returnByte(outputFilenameBytes[i]);
+		}
+		String outputFilename = new String(outputFilenameBytes, "UTF-8");
+		File outputFile = new File(dirOut, outputFilename);
+
+		CipherOutputStream symOut = new CipherOutputStream(new FileOutputStream(outputFile), cipher);
 
 		byte[] buffer = new byte[2048];
 		long bytesRead = 0;

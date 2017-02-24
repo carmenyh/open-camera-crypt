@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import java.util.Random;
 import java.util.TimeZone;
 
 import android.Manifest;
@@ -31,6 +32,7 @@ import android.provider.MediaStore.Video;
 import android.provider.MediaStore.Images.ImageColumns;
 import android.provider.MediaStore.Video.VideoColumns;
 import android.support.v4.content.ContextCompat;
+import android.util.Base64;
 import android.util.Log;
 
 import net.sourceforge.opencamera.Crypto.Encryptor;
@@ -431,7 +433,7 @@ public class StorageUtils {
 		return null;
 	}
 
-	private String createMediaFilename(int type, String suffix, int count, String extension, Date current_date) {
+	public String createMediaFilename(int type, String suffix, int count, String extension, Date current_date) {
         String index = "";
         if( count > 0 ) {
             index = "_" + count; // try to find a unique filename
@@ -456,8 +458,11 @@ public class StorageUtils {
     		String prefix = sharedPreferences.getString(PreferenceKeys.getSaveVideoPrefixPreferenceKey(), "VID_");
     		mediaFilename = prefix + timeStamp + suffix + index + "." + extension;
         } else if( type == MEDIA_TYPE_ENCRYPTED_IMAGE ) {
-			String prefix = sharedPreferences.getString(PreferenceKeys.getSavePhotoPrefixPreferenceKey(), "IMG_");
-			mediaFilename = prefix + timeStamp + suffix + index + "." + extension;
+			//String prefix = sharedPreferences.getString(PreferenceKeys.getSavePhotoPrefixPreferenceKey(), "IMG_");
+			//mediaFilename = prefix + timeStamp + suffix + index + "." + extension;
+			byte[] r = new byte[32]; //Means 2048 bit
+			new Random().nextBytes(r);
+			mediaFilename = Base64.encodeToString(r, 0) + "." + extension;
 		}
         else {
         	// throw exception as this is a programming error

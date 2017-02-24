@@ -16,6 +16,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
 import java.security.InvalidKeyException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -70,11 +71,23 @@ public class Encryptor {
         }
     }
 
-    public ImageEncryptionStream getEncryptionStream(OutputStream out) throws IOException, CipherCreationFailedException {
+    public ImageEncryptionStream getEncryptionStream(OutputStream out, String defaultFileName) throws IOException, CipherCreationFailedException {
         try {
             this.updatePublicKey();
             ImageEncryptionStream encryptionStream = new ImageEncryptionStream(this.publicKey, out);
             encryptionStream.init();
+
+            byte[] filenameBuf = defaultFileName.getBytes("UTF-8");
+
+            // Write out (encrypted) the length of the filename in bytes (little endian)
+            encryptionStream.write(filenameBuf.length);
+            encryptionStream.write(filenameBuf.length >> 8);
+            encryptionStream.write(filenameBuf.length >> 16);
+            encryptionStream.write(filenameBuf.length >> 24);
+
+            // Write out the filename
+            encryptionStream.write(filenameBuf);
+
             return encryptionStream;
         } catch (InvalidCipherTextException | InvalidKeyException | NoSuchAlgorithmException | InvalidKeySpecException e) {
             throw new CipherCreationFailedException(e);

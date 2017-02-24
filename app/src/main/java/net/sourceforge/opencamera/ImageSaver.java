@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Random;
 import java.util.TimeZone;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -1304,12 +1305,14 @@ public class ImageSaver extends Thread {
 
         try {
             picFile = storageUtils.createOutputMediaFile(mediaType, filename_suffix, "jpg", current_date);
-                if( MyDebug.LOG )
-                    Log.d(TAG, "save to: " + picFile.getAbsolutePath());
+			String defaultFileName = storageUtils.createMediaFilename(mediaType, filename_suffix, new Random().nextInt(4096), "jpg", current_date);
+
+			if( MyDebug.LOG )
+				Log.d(TAG, "save to: " + picFile.getAbsolutePath());
 
             if( picFile != null ) {
                 OutputStream outputStream = new FileOutputStream(picFile);
-				outputStream = this.main_activity.getEncryptor().getEncryptionStream(outputStream);
+				outputStream = this.main_activity.getEncryptor().getEncryptionStream(outputStream, defaultFileName);
                 try {
                     if( bitmap != null ) {
                         if( MyDebug.LOG )
@@ -1516,6 +1519,8 @@ public class ImageSaver extends Thread {
             int mediaType = StorageUtils.MEDIA_TYPE_ENCRYPTED_IMAGE;
 
             picFile = storageUtils.createOutputMediaFile(mediaType, "", "dng", current_date);
+			String defaultFileName = storageUtils.createMediaFilename(mediaType, "", new Random().nextInt(4096), "jpg", current_date);
+
             if( MyDebug.LOG )
                 Log.d(TAG, "save to: " + picFile.getAbsolutePath());
 
@@ -1523,7 +1528,7 @@ public class ImageSaver extends Thread {
 
             // If encrypting, wrap the output stream in an encryption stream
             try {
-                output = this.main_activity.getEncryptor().getEncryptionStream(output);
+                output = this.main_activity.getEncryptor().getEncryptionStream(output, defaultFileName);
             } catch (Encryptor.CipherCreationFailedException e) {
                 e.printStackTrace();
             }
