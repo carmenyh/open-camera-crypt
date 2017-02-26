@@ -462,7 +462,11 @@ public class StorageUtils {
 			//mediaFilename = prefix + timeStamp + suffix + index + "." + extension;
 			byte[] r = new byte[32]; //Means 2048 bit
 			new Random().nextBytes(r);
-			mediaFilename = Base64.encodeToString(r, 0) + "." + extension;
+			StringBuilder builder = new StringBuilder();
+			for(byte b : r) {
+				builder.append(String.format("%02x", b));
+			}
+			mediaFilename = builder.toString() + "." + extension;
 		}
         else {
         	// throw exception as this is a programming error
