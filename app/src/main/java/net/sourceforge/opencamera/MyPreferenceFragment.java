@@ -2,6 +2,7 @@ package net.sourceforge.opencamera;
 
 import net.sourceforge.opencamera.Preview.Preview;
 import net.sourceforge.opencamera.UI.FolderChooserDialog;
+import net.sourceforge.opencamera.UI.FileChooserDialog;
 
 import android.app.Activity;
 import android.app.ActivityManager;
@@ -333,7 +334,7 @@ public class MyPreferenceFragment extends PreferenceFragment implements OnShared
                 @Override
                 public boolean onPreferenceClick(Preference arg0) {
                 	if( pref.getKey().equals("preference_encryption_key") ) {
-						FolderChooserDialog fragment = new EncryptionKeyChooserDialog();
+						FileChooserDialog fragment = new EncryptionKeyChooserDialog();
 						fragment.show(getFragmentManager(), "FOLDER_FRAGMENT");
 						return true;
                 	}
@@ -805,21 +806,13 @@ public class MyPreferenceFragment extends PreferenceFragment implements OnShared
 		}
 	}
 
-	public static class EncryptionKeyChooserDialog extends FolderChooserDialog {
-		@Override
-		protected String get_folder_name() {
-			SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this.getActivity());
-			return sharedPreferences.getString(PreferenceKeys.getEncryptionInfoPreferenceKey(), "");
-		}
-
+	public static class EncryptionKeyChooserDialog extends FileChooserDialog {
 		@Override
 		public void onDismiss(DialogInterface dialog) {
-			String key_folder = this.getChosenFolder();
-			//String key_name = "asdf.pem";
-			//String key_file = new File(key_folder, key_name).toString();
+			String key_file = this.getChosenFile();
 
 			SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(getActivity()).edit();
-			editor.putString(PreferenceKeys.getEncryptionInfoPreferenceKey(), key_folder);
+			editor.putString(PreferenceKeys.getEncryptionInfoPreferenceKey(), key_file);
 			editor.apply();
 
 			super.onDismiss(dialog);

@@ -53,7 +53,7 @@ public class Encryptor {
 
     // boolean keyGened = false;
     public void updatePublicKey() throws NoSuchAlgorithmException, IOException, InvalidKeySpecException {
-        this.publicKey = AsymmetricKeyReader.readKey(new File(this.getPublicKeyFilename(), "pub.pem").getAbsolutePath());
+        this.publicKey = AsymmetricKeyReader.readKey(this.getPublicKeyFilename());
     }
 
     public String getEncryptedImageFolder() {
