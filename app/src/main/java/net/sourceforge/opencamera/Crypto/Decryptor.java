@@ -31,6 +31,14 @@ import org.spongycastle.crypto.params.ParametersWithIV;
 import org.spongycastle.util.io.pem.PemReader;
 
 public class Decryptor {
+	private static boolean DEBUG = true;
+
+	private static void debugPrint(String s) {
+		if (DEBUG) {
+			System.out.println(s);
+		}
+	}
+
 	public static void main(String[] args) {
 		DefaultParser parser = new DefaultParser();
         Options options = new Options();
@@ -89,15 +97,22 @@ public class Decryptor {
 	}
 
 	private static byte[] decryptSingleFile(PrivateKey privatekey, File fileIn, File dirOut) {
+		debugPrint("Decrypting: " + fileIn.getAbsolutePath());
+
 		try {
 			long fileLength = fileIn.length();
+			debugPrint("\tFile length:\t\t" + fileLength);
+
 			InputStream fr = new FileInputStream(fileIn);
 
 			// Calculate the length of the various parts of the encrypted file
 			int sklength = fr.read();
+			debugPrint("\tEncrypted symmetric key length:\t" + sklength);
 			int ivlength = fr.read();
+			debugPrint("\tInitialization vector length:\t" + ivlength);
 			//int imageLength = (int)fileLength - (sklength + ivlength + 1 + 1);
 			int encryptedLength = (int)fileLength - (sklength + ivlength + 1 + 1);
+			debugPrint("\tTotal encrypted length:\t" + encryptedLength);
 
 			// Read the symmetric key
 			byte[] encryptedKey = new byte[sklength];
@@ -123,6 +138,7 @@ public class Decryptor {
 	}
 
 	private static void decryptAndStorePhoto(byte[] symKey, byte[] iv, File dirOut, InputStream in, int length) throws IOException {
+		debugPrint("\tDecrypting data portion of photo");
         StreamCipher cipher = new Salsa20Engine();
         cipher.init(false, new ParametersWithIV(new KeyParameter(symKey), iv));
 
@@ -133,6 +149,7 @@ public class Decryptor {
 		outFilenameLength += cipher.returnByte(outputFilenameLengthBytes[1]) << 8;
 		outFilenameLength += cipher.returnByte(outputFilenameLengthBytes[2]) << 16;
 		outFilenameLength += cipher.returnByte(outputFilenameLengthBytes[3]) << 24;
+		debugPrint("\tOutput filename length:\t" + outFilenameLength);
 
 		byte[] outputFilenameBytes = new byte[outFilenameLength];
 		in.read(outputFilenameBytes);
@@ -141,18 +158,20 @@ public class Decryptor {
 		}
 		String outputFilename = new String(outputFilenameBytes, "UTF-8");
 		File outputFile = new File(dirOut, outputFilename);
+		debugPrint("\tOutput filename:\t\t" + outputFile.getAbsolutePath());
 
 		CipherOutputStream symOut = new CipherOutputStream(new FileOutputStream(outputFile), cipher);
 
 		byte[] buffer = new byte[2048];
 		long bytesRead = 0;
-		while (bytesRead < length) {
+		while (bytesRead < length - outputFilenameLengthBytes.length - outputFilenameBytes.length) {
 			int read = in.read(buffer);
 			symOut.write(buffer, 0, read);
 			bytesRead += read;
 		}
 
-        symOut.close(); 
+        symOut.close();
+		debugPrint("\tDone decrypting photo");
 	}
 
 	private static byte[] decryptSymmetricKey(PrivateKey privatekey, byte[] encryptedKey) {

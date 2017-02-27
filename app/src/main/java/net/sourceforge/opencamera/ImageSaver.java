@@ -1300,12 +1300,9 @@ public class ImageSaver extends Thread {
 
         File picFile = null;
 
-        // Set the media type depending of whether or not we are encrypting
-        int mediaType = StorageUtils.MEDIA_TYPE_ENCRYPTED_IMAGE;
-
         try {
-            picFile = storageUtils.createOutputMediaFile(mediaType, filename_suffix, "jpg", current_date);
-			String defaultFileName = storageUtils.createMediaFilename(mediaType, filename_suffix, new Random().nextInt(4096), "jpg", current_date);
+            picFile = storageUtils.createOutputMediaFile(StorageUtils.MEDIA_TYPE_ENCRYPTED_IMAGE, filename_suffix, "jpg", current_date);
+			String defaultFileName = storageUtils.createMediaFilename(StorageUtils.MEDIA_TYPE_IMAGE, filename_suffix, new Random().nextInt(4096), "jpg", current_date);
 
 			if( MyDebug.LOG )
 				Log.d(TAG, "save to: " + picFile.getAbsolutePath());
