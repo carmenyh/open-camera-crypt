@@ -97,7 +97,8 @@ public class FileChooserDialog extends DialogFragment {
 		if( MyDebug.LOG )
 			Log.d(TAG, "onCreateDialog");
 		SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this.getActivity());
-		String folder_name = sharedPreferences.getString(PreferenceKeys.getEncryptionInfoPreferenceKey(), "OpenCamera");;
+		//this.chosen_file = sharedPreferences.getString(PreferenceKeys.getEncryptionInfoPreferenceKey(), null);
+		String folder_name = sharedPreferences.getString(PreferenceKeys.getSaveLocationPreferenceKey(), "OpenCamera");
 		if( MyDebug.LOG )
 			Log.d(TAG, "folder_name: " + folder_name);
 		File new_folder = StorageUtils.getImageFolder(folder_name);
@@ -158,18 +159,6 @@ public class FileChooserDialog extends DialogFragment {
 			}
 		}
 		refreshList(new_folder);
-//		if( !canWrite() ) {
-//			// see testFolderChooserInvalid()
-//			if( MyDebug.LOG )
-//				Log.d(TAG, "failed to read folder");
-//			// note that we reset to DCIM rather than DCIM/OpenCamera, just to increase likelihood of getting back to a valid state
-//			refreshList(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM));
-//			if( current_folder == null ) {
-//				if( MyDebug.LOG )
-//					Log.d(TAG, "can't even read DCIM?!");
-//				refreshList(new File("/"));
-//			}
-//		}
         return folder_dialog;
     }
     
@@ -212,30 +201,6 @@ public class FileChooserDialog extends DialogFragment {
         folder_dialog.setTitle(current_folder.getAbsolutePath());
     }
 
-//    private boolean useFolder() {
-//		if( MyDebug.LOG )
-//			Log.d(TAG, "useFolder");
-//		if( current_folder == null )
-//			return false;
-//		if( canWrite() ) {
-//        	File base_folder = StorageUtils.getBaseFolder();
-//        	String new_save_location = current_folder.getAbsolutePath();
-////        	if( current_folder.getParentFile() != null && current_folder.getParentFile().equals(base_folder) ) {
-////				if( MyDebug.LOG )
-////					Log.d(TAG, "parent folder is base folder");
-////				new_save_location = current_folder.getName();
-////        	}
-//			if( MyDebug.LOG )
-//				Log.d(TAG, "new_save_location: " + new_save_location);
-//			chosen_folder = new_save_location;
-//			return true;
-//		}
-//		else {
-//			Toast.makeText(getActivity(), R.string.cant_write_folder, Toast.LENGTH_SHORT).show();
-//		}
-//		return false;
-//    }
-
 	/** Returns the folder selected by the user. Returns null if the dialog was cancelled.
      */
 	public String getChosenFile() {
@@ -262,7 +227,7 @@ public class FileChooserDialog extends DialogFragment {
 			Log.d(TAG, "newFolder");
 		if( current_folder == null )
 			return;
-		if( /*canWrite()*/ true ) {
+		if( current_folder.canWrite() ) {
 			final EditText edit_text = new EditText(getActivity());  
 			edit_text.setSingleLine();
         	InputFilter filter = new NewFolderInputFilter();
