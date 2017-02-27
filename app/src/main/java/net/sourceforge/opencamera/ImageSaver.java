@@ -1318,6 +1318,7 @@ public class ImageSaver extends Thread {
                     }
                     else {
                         outputStream.write(data);
+						picFile.setLastModified(0);
                     }
                 }
                 finally {
