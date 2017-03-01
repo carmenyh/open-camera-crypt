@@ -225,6 +225,7 @@ public class Decryptor {
 			byte[] bytes = pempublic.readPemObject().getContent();
 			PrivateKey pub = KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(bytes));
 			pempublic.close();
+			return pub;
 
 		} catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException e) {
 			// TODO Auto-generated catch block
