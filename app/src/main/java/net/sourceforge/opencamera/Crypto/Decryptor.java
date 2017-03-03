@@ -113,6 +113,10 @@ public class Decryptor {
 
 			// Calculate the length of the various parts of the encrypted file
 			int sklength = fr.read();
+			if(sklength == 0) {
+				sklength = 256;
+
+			}
 			debugPrint("\tEncrypted symmetric key length:\t" + sklength);
 			int ivlength = fr.read();
 			debugPrint("\tInitialization vector length:\t" + ivlength);

@@ -72,7 +72,7 @@ public class KeyGen {
 		try {
 			KeyPairGenerator kg;
 			kg = KeyPairGenerator.getInstance("RSA");
-			kg.initialize(new RSAKeyGenParameterSpec(1024, RSAKeyGenParameterSpec.F4));
+			kg.initialize(new RSAKeyGenParameterSpec(2048, RSAKeyGenParameterSpec.F4));
 			return kg.generateKeyPair();
 		} catch (NoSuchAlgorithmException | InvalidAlgorithmParameterException e) {
 			e.printStackTrace();
