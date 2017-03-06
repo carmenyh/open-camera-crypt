@@ -124,9 +124,11 @@
     <string name="preference_using_saf_summary">Whether to use Android 5\'s Storage Access Framework for saving photos and videos</string>
     <string name="preference_category_encryption">Encryption</string>
     <string name="preference_encrypt">Encrypt photos</string>
-    <string name="preference_encrypt_summary">Longer description of how to encrypt photos asdf</string>
+    <string name="preference_encrypt_summary">Enable public key photo encryption</string>
     <string name="preference_encryption_key">Encryption key</string>
     <string name="preference_encryption_key_summary">Select an encryption key</string>
+    <string name="preference_encrypted_save_location">Encrypted save location</string>
+    <string name="preference_encrypted_save_location_summary">Choose where encrypted photos are stored</string>
     <string name="preference_save_photo_prefix">Save photo prefix</string>
     <string name="preference_save_photo_prefix_summary">The prefix to use for the save filenames for photos</string>
     <string name="preference_save_video_prefix">Save video prefix</string>

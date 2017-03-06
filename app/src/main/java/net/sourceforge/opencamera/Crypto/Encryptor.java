@@ -51,7 +51,6 @@ public class Encryptor {
         return res;
     }
 
-
     // boolean keyGened = false;
     public void updatePublicKey() throws NoSuchAlgorithmException, IOException, InvalidKeySpecException {
         this.publicKey = AsymmetricKeyReader.readKey(this.getPublicKeyFilename());

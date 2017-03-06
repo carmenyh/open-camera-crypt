@@ -29,6 +29,7 @@ import android.preference.Preference.OnPreferenceClickListener;
 import android.preference.PreferenceFragment;
 import android.preference.PreferenceGroup;
 import android.preference.PreferenceManager;
+import android.preference.SwitchPreference;
 import android.preference.TwoStatePreference;
 import android.util.Log;
 import android.view.Display;
@@ -328,36 +329,62 @@ public class MyPreferenceFragment extends PreferenceFragment implements OnShared
             });
         }
 
-        {
-            final Preference pref = findPreference("preference_encryption_key");
-            pref.setOnPreferenceClickListener(new OnPreferenceClickListener() {
-                @Override
-                public boolean onPreferenceClick(Preference arg0) {
-                	if( pref.getKey().equals("preference_encryption_key") ) {
-						FileChooserDialog fragment = new EncryptionKeyChooserDialog();
-						fragment.show(getFragmentManager(), "FOLDER_FRAGMENT");
+		{
+			final SwitchPreference encrypt = (SwitchPreference) findPreference("preference_encrypt");
+			final Preference keyLocation = findPreference("preference_encryption_key");
+			String currentKeyLocation = sharedPreferences.getString(PreferenceKeys.getEncryptionInfoPreferenceKey(), null);
+			if (currentKeyLocation == null) {
+				encrypt.setChecked(false);
+			} else {
+				keyLocation.setSummary(currentKeyLocation);
+			}
+			OnPreferenceClickListener listener = new OnPreferenceClickListener() {
+				@Override
+				public boolean onPreferenceClick(Preference preference) {
+					String currentKeyLocation = sharedPreferences.getString(PreferenceKeys.getEncryptionInfoPreferenceKey(), null);
+					if (preference.getKey().equals("preference_encryption_key") && !encrypt.isChecked()) {
 						return true;
-                	}
-                	return true;
-                }
-            });
-        }
+					}
+					if (preference.getKey().equals("preference_encrypt") && (currentKeyLocation != null)) {
+						return true;
+					}
+
+					EncryptionKeyChooserDialog fragment = new EncryptionKeyChooserDialog();
+					fragment.setPreferences(encrypt, keyLocation);
+					fragment.show(getFragmentManager(), "KEY_PICKER_FRAGMENT");
+
+					return true;
+				}
+			};
+			encrypt.setOnPreferenceClickListener(listener);
+			keyLocation.setOnPreferenceClickListener(listener);
+
+			final Preference encryptedSaveLocation = findPreference("preference_encrypted_save_location");
+			encryptedSaveLocation.setOnPreferenceClickListener(new OnPreferenceClickListener() {
+				@Override
+				public boolean onPreferenceClick(Preference preference) {
+					FolderChooserDialog fragment = new EncryptedSaveFolderChooserDialog();
+					fragment.show(getFragmentManager(), "ENCRYPTED_FOLDER_FRAGMENT");
+					return true;
+				}
+			});
+		}
 
         /*{
         	EditTextPreference edit = (EditTextPreference)findPreference("preference_save_location");
-        	InputFilter filter = new InputFilter() { 
+        	InputFilter filter = new InputFilter() {
         		// whilst Android seems to allow any characters on internal memory, SD cards are typically formatted with FAT32
         		String disallowed = "|\\?*<\":>";
-                public CharSequence filter(CharSequence source, int start, int end, Spanned dest, int dstart, int dend) { 
-                    for(int i=start;i<end;i++) { 
+                public CharSequence filter(CharSequence source, int start, int end, Spanned dest, int dstart, int dend) {
+                    for(int i=start;i<end;i++) {
                     	if( disallowed.indexOf( source.charAt(i) ) != -1 ) {
-                            return ""; 
+                            return "";
                     	}
-                    } 
-                    return null; 
+                    }
+                    return null;
                 }
-        	}; 
-        	edit.getEditText().setFilters(new InputFilter[]{filter});         	
+        	};
+        	edit.getEditText().setFilters(new InputFilter[]{filter});
         }*/
         {
         	Preference pref = findPreference("preference_save_location");
@@ -377,7 +404,7 @@ public class MyPreferenceFragment extends PreferenceFragment implements OnShared
                     	return true;
             		}
                 }
-            });        	
+            });
         }
 
         if( Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP ) {
@@ -806,13 +833,45 @@ public class MyPreferenceFragment extends PreferenceFragment implements OnShared
 		}
 	}
 
+	public static class EncryptedSaveFolderChooserDialog extends FolderChooserDialog {
+		@Override
+		public void onDismiss(DialogInterface dialog) {
+			SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(getActivity()).edit();
+			editor.putString(PreferenceKeys.getEncryptedSaveLocationPreferenceKey(), this.getChosenFolder());
+			editor.apply();
+
+			super.onDismiss(dialog);
+		}
+	}
+
 	public static class EncryptionKeyChooserDialog extends FileChooserDialog {
+		private SwitchPreference encrypt;
+		private Preference keyLocation;
+
+		private void setPreferences(SwitchPreference encrypt, Preference keyLocation) {
+			this.encrypt = encrypt;
+			this.keyLocation = keyLocation;
+		}
+
 		@Override
 		public void onDismiss(DialogInterface dialog) {
 			String key_file = this.getChosenFile();
 
 			SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(getActivity()).edit();
-			editor.putString(PreferenceKeys.getEncryptionInfoPreferenceKey(), key_file);
+			if (key_file == null) {
+				if (encrypt != null) {
+					encrypt.setChecked(false);
+				}
+				if (keyLocation != null) {
+					keyLocation.setSummary(R.string.preference_encryption_key_summary);
+				}
+				editor.remove(PreferenceKeys.getEncryptionInfoPreferenceKey());
+			} else {
+				editor.putString(PreferenceKeys.getEncryptionInfoPreferenceKey(), key_file);
+				if (keyLocation != null) {
+					keyLocation.setSummary(key_file);
+				}
+			}
 			editor.apply();
 
 			super.onDismiss(dialog);

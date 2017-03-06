@@ -277,6 +277,16 @@
                     android:dependency="preference_encrypt"
                     />
 
+				<Preference
+					android:key="preference_encrypted_save_location"
+					android:title="@string/preference_encrypted_save_location"
+					android:summary="@string/preference_encrypted_save_location_summary"
+					android:dialogTitle="@string/preference_encrypted_save_location"
+					android:dialogMessage="@string/preference_encrypted_save_location_summary"
+					android:inputType="text"
+					android:defaultValue="OpenCamera"
+					android:dependency="preference_encrypt"
+					/>
             </PreferenceCategory>
 
 		</PreferenceScreen>
