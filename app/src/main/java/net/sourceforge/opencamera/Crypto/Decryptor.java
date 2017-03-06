@@ -30,6 +30,10 @@ import org.spongycastle.crypto.params.KeyParameter;
 import org.spongycastle.crypto.params.ParametersWithIV;
 import org.spongycastle.util.io.pem.PemReader;
 
+import java.io.ByteArrayOutputStream;
+import java.io.CharArrayReader;
+import java.security.MessageDigest;
+
 public class Decryptor {
 	private static boolean DEBUG = true;
 
@@ -44,6 +48,7 @@ public class Decryptor {
         Options options = new Options();
         options.addOption("s", "secret", true, "The path of the private key file to be used to decrypt the image");
         options.addOption("d", "use-directory", false, "Decrypt all encrypted photos in a directory");
+		options.addOption("k", "key", true, "The password with which to protect the private key");
         CommandLine commandLine;
         try {
             commandLine = parser.parse(options, args);
@@ -56,7 +61,8 @@ public class Decryptor {
 		if (privateKeyFilepath.isEmpty()) {
 			printAndExit("No private key file specified.");
 		}
-		PrivateKey privateKey = getPrivateKey(privateKeyFilepath);
+		String privateKeyPasscode = commandLine.getOptionValue('k', "");
+		PrivateKey privateKey = getPrivateKey(privateKeyFilepath, privateKeyPasscode);
 
 		String[] paths = commandLine.getArgs();
 		if (paths.length != 2) {
@@ -107,6 +113,10 @@ public class Decryptor {
 
 			// Calculate the length of the various parts of the encrypted file
 			int sklength = fr.read();
+			if(sklength == 0) {
+				sklength = 256;
+
+			}
 			debugPrint("\tEncrypted symmetric key length:\t" + sklength);
 			int ivlength = fr.read();
 			debugPrint("\tInitialization vector length:\t" + ivlength);
@@ -188,17 +198,43 @@ public class Decryptor {
         return null;
 	}
 
-	private static PrivateKey getPrivateKey(String fileloc) {
+	private static PrivateKey getPrivateKey(String fileloc, String privateKeyPassCode) {
 		try {
-			PemReader pempublic = new PemReader(new FileReader(new File(fileloc)));
+			File f = new File(fileloc);
+			InputStream fr = new FileInputStream(fileloc);
+			int ivlength = fr.read();
+			long length = f.length() - ivlength - 1;
+			byte[] iv = new byte[ivlength];
+			fr.read(iv);
+
+			MessageDigest md = MessageDigest.getInstance("SHA-256");
+			md.update(privateKeyPassCode.getBytes("UTF-8"));
+			byte[] passcode = md.digest();
+
+			ByteArrayOutputStream bout = new ByteArrayOutputStream();
+
+			StreamCipher cipher = new Salsa20Engine();
+			cipher.init(false, new ParametersWithIV(new KeyParameter(passcode), iv));
+			CipherOutputStream symOut = new CipherOutputStream(bout, cipher);
+
+			byte[] buffer = new byte[2048];
+			long bytesRead = 0;
+			while (bytesRead < length) {
+				int read = fr.read(buffer);
+				symOut.write(buffer, 0, read);
+				bytesRead += read;
+			}
+			CharArrayReader r = new CharArrayReader(new String(bout.toByteArray()).toCharArray());
+			PemReader pempublic = new PemReader(r);
 			byte[] bytes = pempublic.readPemObject().getContent();
 			PrivateKey pub = KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(bytes));
 			pempublic.close();
 			return pub;
-		} catch (IOException | InvalidKeySpecException | NoSuchAlgorithmException e) {
+
+		} catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-        return null;
+		return null;
 	}
 }
