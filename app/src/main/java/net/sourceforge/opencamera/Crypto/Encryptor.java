@@ -47,7 +47,6 @@ public class Encryptor {
 
     public String getPublicKeyFilename() {
         String res = this.preferences.getString(PreferenceKeys.getEncryptionInfoPreferenceKey(), "");
-        System.err.println(res);
         return res;
     }
 
@@ -57,7 +56,7 @@ public class Encryptor {
     }
 
     public String getEncryptedImageFolder() {
-            String imageFolderPath = this.preferences.getString("PreferenceKeys.getEncryptedImageFolder()", "");
+            String imageFolderPath = this.preferences.getString(PreferenceKeys.getEncryptedSaveLocationPreferenceKey(), "");
             if (imageFolderPath == null || imageFolderPath.isEmpty()) {
                 imageFolderPath = this.preferences.getString(PreferenceKeys.getSaveLocationPreferenceKey(), "OpenCamera");
             }
