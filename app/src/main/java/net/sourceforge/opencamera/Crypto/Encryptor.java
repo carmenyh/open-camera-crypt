@@ -30,7 +30,6 @@ import java.security.spec.InvalidKeySpecException;
  */
 
 public class Encryptor {
-    static public String FILE_EXTENSION = "encrypted";
 
     private MainActivity mainActivity;
     private SharedPreferences preferences;

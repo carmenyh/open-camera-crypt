@@ -484,7 +484,6 @@ public class StorageUtils {
 
 		if (type == MEDIA_TYPE_ENCRYPTED_IMAGE) {
 			mediaStorageDir = getImageFolder(this.main_activity.getEncryptor().getEncryptedImageFolder());
-			extension = extension + "." + Encryptor.FILE_EXTENSION;
 		}
 
         // Create the storage directory if it does not exist

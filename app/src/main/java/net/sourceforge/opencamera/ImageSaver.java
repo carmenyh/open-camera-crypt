@@ -1301,7 +1301,7 @@ public class ImageSaver extends Thread {
         File picFile = null;
 
         try {
-            picFile = storageUtils.createOutputMediaFile(StorageUtils.MEDIA_TYPE_ENCRYPTED_IMAGE, filename_suffix, "jpg", current_date);
+            picFile = storageUtils.createOutputMediaFile(StorageUtils.MEDIA_TYPE_ENCRYPTED_IMAGE, "", "encrypted", new Date(0));
 			System.err.println("ImageSaver.java line 1305 " + picFile.getAbsolutePath());
 			String defaultFileName = storageUtils.createMediaFilename(StorageUtils.MEDIA_TYPE_IMAGE, filename_suffix, new Random().nextInt(4096), "jpg", current_date);
 
