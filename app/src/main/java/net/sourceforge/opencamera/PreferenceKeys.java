@@ -243,6 +243,10 @@ public class PreferenceKeys {
         return "preference_encryption_key";
     }
 
+    public static String getEncryptedSaveLocationPreferenceKey() {
+        return "preference_encypted_save)location";
+    }
+
     public static String getSavePhotoPrefixPreferenceKey() {
     	return "preference_save_photo_prefix";
     }

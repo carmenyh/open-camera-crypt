@@ -97,7 +97,6 @@ public class FileChooserDialog extends DialogFragment {
 		if( MyDebug.LOG )
 			Log.d(TAG, "onCreateDialog");
 		SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this.getActivity());
-		//this.chosen_file = sharedPreferences.getString(PreferenceKeys.getEncryptionInfoPreferenceKey(), null);
 		String folder_name = sharedPreferences.getString(PreferenceKeys.getSaveLocationPreferenceKey(), "OpenCamera");
 		if( MyDebug.LOG )
 			Log.d(TAG, "folder_name: " + folder_name);

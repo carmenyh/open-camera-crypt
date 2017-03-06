@@ -127,6 +127,8 @@
     <string name="preference_encrypt_summary">Enable public key photo encryption</string>
     <string name="preference_encryption_key">Encryption key</string>
     <string name="preference_encryption_key_summary">Select an encryption key</string>
+    <string name="preference_encrypted_save_location">Encrypted save location</string>
+    <string name="preference_encrypted_save_location_summary">Choose where encrypted photos are stored</string>
     <string name="preference_save_photo_prefix">Save photo prefix</string>
     <string name="preference_save_photo_prefix_summary">The prefix to use for the save filenames for photos</string>
     <string name="preference_save_video_prefix">Save video prefix</string>

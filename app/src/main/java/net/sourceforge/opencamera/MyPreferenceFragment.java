@@ -329,23 +329,46 @@ public class MyPreferenceFragment extends PreferenceFragment implements OnShared
             });
         }
 
-        {
+		{
 			final SwitchPreference encrypt = (SwitchPreference) findPreference("preference_encrypt");
 			final Preference keyLocation = findPreference("preference_encryption_key");
+			String currentKeyLocation = sharedPreferences.getString(PreferenceKeys.getEncryptionInfoPreferenceKey(), null);
+			if (currentKeyLocation == null) {
+				encrypt.setChecked(false);
+			} else {
+				keyLocation.setSummary(currentKeyLocation);
+			}
 			OnPreferenceClickListener listener = new OnPreferenceClickListener() {
 				@Override
 				public boolean onPreferenceClick(Preference preference) {
-					if (encrypt.isChecked()) {
-						EncryptionKeyChooserDialog fragment = new EncryptionKeyChooserDialog();
-						fragment.setPreferences(encrypt, keyLocation);
-						fragment.show(getFragmentManager(), "FOLDER_FRAGMENT");
+					String currentKeyLocation = sharedPreferences.getString(PreferenceKeys.getEncryptionInfoPreferenceKey(), null);
+					if (preference.getKey().equals("preference_encryption_key") && !encrypt.isChecked()) {
+						return true;
 					}
+					if (preference.getKey().equals("preference_encrypt") && (currentKeyLocation != null)) {
+						return true;
+					}
+
+					EncryptionKeyChooserDialog fragment = new EncryptionKeyChooserDialog();
+					fragment.setPreferences(encrypt, keyLocation);
+					fragment.show(getFragmentManager(), "KEY_PICKER_FRAGMENT");
+
 					return true;
 				}
 			};
-            encrypt.setOnPreferenceClickListener(listener);
+			encrypt.setOnPreferenceClickListener(listener);
 			keyLocation.setOnPreferenceClickListener(listener);
-        }
+
+			final Preference encryptedSaveLocation = findPreference("preference_encrypted_save_location");
+			encryptedSaveLocation.setOnPreferenceClickListener(new OnPreferenceClickListener() {
+				@Override
+				public boolean onPreferenceClick(Preference preference) {
+					FolderChooserDialog fragment = new EncryptedSaveFolderChooserDialog();
+					fragment.show(getFragmentManager(), "ENCRYPTED_FOLDER_FRAGMENT");
+					return true;
+				}
+			});
+		}
 
         /*{
         	EditTextPreference edit = (EditTextPreference)findPreference("preference_save_location");
@@ -810,6 +833,17 @@ public class MyPreferenceFragment extends PreferenceFragment implements OnShared
 		}
 	}
 
+	public static class EncryptedSaveFolderChooserDialog extends FolderChooserDialog {
+		@Override
+		public void onDismiss(DialogInterface dialog) {
+			SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(getActivity()).edit();
+			editor.putString(PreferenceKeys.getEncryptedSaveLocationPreferenceKey(), this.getChosenFolder());
+			editor.apply();
+
+			super.onDismiss(dialog);
+		}
+	}
+
 	public static class EncryptionKeyChooserDialog extends FileChooserDialog {
 		private SwitchPreference encrypt;
 		private Preference keyLocation;
@@ -823,6 +857,7 @@ public class MyPreferenceFragment extends PreferenceFragment implements OnShared
 		public void onDismiss(DialogInterface dialog) {
 			String key_file = this.getChosenFile();
 
+			SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(getActivity()).edit();
 			if (key_file == null) {
 				if (encrypt != null) {
 					encrypt.setChecked(false);
@@ -830,14 +865,14 @@ public class MyPreferenceFragment extends PreferenceFragment implements OnShared
 				if (keyLocation != null) {
 					keyLocation.setSummary(R.string.preference_encryption_key_summary);
 				}
+				editor.remove(PreferenceKeys.getEncryptionInfoPreferenceKey());
 			} else {
-				SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(getActivity()).edit();
 				editor.putString(PreferenceKeys.getEncryptionInfoPreferenceKey(), key_file);
-				editor.apply();
 				if (keyLocation != null) {
 					keyLocation.setSummary(key_file);
 				}
 			}
+			editor.apply();
 
 			super.onDismiss(dialog);
 		}
