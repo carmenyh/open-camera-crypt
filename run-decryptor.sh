@@ -1,0 +1,1 @@
+java -classpath ./app/build/intermediates/classes/debug:./app/libs/spongy-castle-core-1.54.0.0.jar:./app/libs/commons-cli-1.3.1.jar net.sourceforge.opencamera.Crypto.Decryptor -s ./priv.pem -d ./OpenCamera/ ./OpenCamera/
