@@ -120,7 +120,6 @@ public class Decryptor {
 			debugPrint("\tEncrypted symmetric key length:\t" + sklength);
 			int ivlength = fr.read();
 			debugPrint("\tInitialization vector length:\t" + ivlength);
-			//int imageLength = (int)fileLength - (sklength + ivlength + 1 + 1);
 			int encryptedLength = (int)fileLength - (sklength + ivlength + 1 + 1);
 			debugPrint("\tTotal encrypted length:\t" + encryptedLength);
 

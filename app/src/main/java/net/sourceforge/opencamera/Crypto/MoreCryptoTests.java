@@ -14,13 +14,10 @@ import org.spongycastle.crypto.InvalidCipherTextException;
 public class MoreCryptoTests {
 
 	public static void main(String[] args) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException, InvalidCipherTextException {
-		//testFullLife("/Users/LaLoca/Desktop/private.pem", "/Users/LaLoca/Desktop/public.pem", "/Users/LaLoca/Desktop/other.jpg", "/Users/LaLoca/Desktop/test2.jpg");
 		testFullLife("C:\\Users\\jafre\\Desktop\\priv.pem", "C:\\Users\\jafre\\Desktop\\pub.pem", "C:\\Users\\jafre\\Desktop\\other.jpg", "C:\\Users\\jafre\\Desktop\\test2.jpg");
 	}
 
 	private static void testFullLife(String privateLoc, String publicLoc, String inputFile, String outputFile) throws NoSuchAlgorithmException, InvalidKeySpecException, IOException, InvalidKeyException, InvalidCipherTextException {
-		//String[] keyGenArgs = {privateLoc, publicLoc, "C:\\Users\\jafre\\Desktop\\sd.pem"};
-		//KeyGen.main(keyGenArgs);
 		String midFile = "C:\\Users\\jafre\\Desktop\\test2.jpg.encrypted";
 		iesTest(publicLoc, inputFile, midFile);
 
@@ -45,17 +42,4 @@ public class MoreCryptoTests {
 		ies.flush();
 		ies.close();
 	}
-	/*
-	public static void readBytes(String inputFile) throws IOException {
-		Path path = Paths.get(inputFile);
-		byte[] data = Files.readAllBytes(path);
-		for(int i = 0; i < data.length; i++) {
-			System.out.print(String.format("%02X ", data[i]) +" ");
-			if((i % 4) == 3) {
-				System.out.println();
-			}
-		}
-	}
-	*/
-
 }

@@ -39,15 +39,6 @@ public class ImageEncryptionStream extends OutputStream {
         this.out = out;
     }
 
-    // just in case we need it for debugging
-    private void printInHex(byte[] data) {
-        StringBuilder sb = new StringBuilder();
-        for (byte b : data) {
-            sb.append(String.format("%02X ", b));
-        }
-        System.out.println(sb.toString());
-    }
-
     public void init() throws IOException, InvalidCipherTextException, InvalidKeyException {
         if (publicKey == null || out == null) {
             throw new IllegalStateException("Already initialized");

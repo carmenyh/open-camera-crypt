@@ -57,16 +57,6 @@ public class KeyGen {
 		saveKeysToComputer(keys.getPublic(), publicKeyFilename, keys.getPrivate(), privateKeyFilename, privateKeyPasscode);
 		saveKeyForDevice(keys.getPublic(), devicePublicKeyFilename);
 	}
-
-	/*
-	private static String getPassword() {
-		Scanner input = new Scanner(System.in);
-		System.out.print("Input a password to protect the private key: ");
-		String passcode = input.next();
-		input.close();
-		return passcode;
-	}
-	*/
 	
 	public static KeyPair generateKeys() {
 		try {
@@ -115,12 +105,10 @@ public class KeyGen {
             keyStream.write((new String(output.toCharArray())).getBytes());
             keyStream.flush();
             keyStream.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (NoSuchAlgorithmException e) {
+        } catch (IOException | NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
-    }
+	}
 
 	public static void saveKeyForDevice(PublicKey publickey, String SDFile) {
 		try {

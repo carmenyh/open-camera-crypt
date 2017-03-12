@@ -1278,8 +1278,6 @@ public class ImageSaver extends Thread {
         // unpack:
         final Date current_date = request.current_date;
 
-
-        boolean success = false;
         StorageUtils storageUtils = this.main_activity.getStorageUtils();
 
         this.main_activity.savingImage(true);
@@ -1298,7 +1296,7 @@ public class ImageSaver extends Thread {
             Log.d(TAG, "Save single image performance: time after photostamp: " + (System.currentTimeMillis() - time_s));
         }
 
-        File picFile = null;
+        File picFile;
 
         try {
             picFile = storageUtils.createOutputMediaFile(StorageUtils.MEDIA_TYPE_ENCRYPTED_IMAGE, "", "encrypted", new Date(0));
@@ -1308,28 +1306,26 @@ public class ImageSaver extends Thread {
 			if( MyDebug.LOG )
 				Log.d(TAG, "save to: " + picFile.getAbsolutePath());
 
-            if( picFile != null ) {
-                OutputStream outputStream = new FileOutputStream(picFile);
-				outputStream = this.main_activity.getEncryptor().getEncryptionStream(outputStream, defaultFileName);
-                try {
-                    if( bitmap != null ) {
-                        if( MyDebug.LOG )
-                            Log.d(TAG, "compress bitmap, quality " + request.image_quality);
-                        bitmap.compress(Bitmap.CompressFormat.JPEG, request.image_quality, outputStream);
-                    } else {
-                        outputStream.write(data);
-						picFile.setLastModified(0);
-                    }
-                }
-                finally {
-                    outputStream.close();
-                }
-                if( MyDebug.LOG )
-                    Log.d(TAG, "saveEncryptedImageNow saved photo");
-                if( MyDebug.LOG ) {
-                    Log.d(TAG, "Save single image performance: time after saving photo: " + (System.currentTimeMillis() - time_s));
-                }
-            }
+			OutputStream outputStream = new FileOutputStream(picFile);
+			outputStream = this.main_activity.getEncryptor().getEncryptionStream(outputStream, defaultFileName);
+			try {
+				if( bitmap != null ) {
+					if( MyDebug.LOG )
+						Log.d(TAG, "compress bitmap, quality " + request.image_quality);
+					bitmap.compress(Bitmap.CompressFormat.JPEG, request.image_quality, outputStream);
+				} else {
+					outputStream.write(data);
+					picFile.setLastModified(0);
+				}
+			}
+			finally {
+				outputStream.close();
+			}
+			if( MyDebug.LOG )
+				Log.d(TAG, "saveEncryptedImageNow saved photo");
+			if( MyDebug.LOG ) {
+				Log.d(TAG, "Save single image performance: time after saving photo: " + (System.currentTimeMillis() - time_s));
+			}
         }
         catch(FileNotFoundException e) {
             if( MyDebug.LOG )
@@ -1359,7 +1355,7 @@ public class ImageSaver extends Thread {
         if( MyDebug.LOG ) {
             Log.d(TAG, "Save single image performance: total time: " + (System.currentTimeMillis() - time_s));
         }
-        return success;
+        return true;
     }
 
     /** May be run in saver thread or picture callback thread (depending on whether running in background).
@@ -1540,9 +1536,7 @@ public class ImageSaver extends Thread {
             output = null;
 
             success = true;
-            //Uri media_uri = storageUtils.broadcastFileRaw(picFile, current_date, location);
-            //storageUtils.announceUri(media_uri, true, false);
-
+			
             MyApplicationInterface applicationInterface = this.main_activity.getApplicationInterface();
         } catch(FileNotFoundException e) {
             if( MyDebug.LOG )

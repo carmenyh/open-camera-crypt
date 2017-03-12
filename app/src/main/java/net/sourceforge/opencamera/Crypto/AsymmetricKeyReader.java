@@ -26,10 +26,6 @@ import org.spongycastle.util.io.pem.PemReader;
 
 import static android.content.ContentValues.TAG;
 
-/**
- * Created by bgardon on 3/02/17.
- */
-
 public class AsymmetricKeyReader {
     static PublicKey readKey(String filename) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
         try {

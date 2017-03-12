@@ -30,13 +30,10 @@ import java.security.spec.InvalidKeySpecException;
  */
 
 public class Encryptor {
-
-    private MainActivity mainActivity;
     private SharedPreferences preferences;
     private PublicKey publicKey;
 
     public Encryptor(MainActivity mainActivity) {
-        this.mainActivity = mainActivity;
         this.preferences = PreferenceManager.getDefaultSharedPreferences(mainActivity);
     }
 
@@ -49,14 +46,13 @@ public class Encryptor {
         return res;
     }
 
-    // boolean keyGened = false;
     public void updatePublicKey() throws NoSuchAlgorithmException, IOException, InvalidKeySpecException {
         this.publicKey = AsymmetricKeyReader.readKey(this.getPublicKeyFilename());
     }
 
     public String getEncryptedImageFolder() {
             String imageFolderPath = this.preferences.getString(PreferenceKeys.getEncryptedSaveLocationPreferenceKey(), "");
-            if (imageFolderPath == null || imageFolderPath.isEmpty()) {
+            if (imageFolderPath.isEmpty()) {
                 imageFolderPath = this.preferences.getString(PreferenceKeys.getSaveLocationPreferenceKey(), "OpenCamera");
             }
             return imageFolderPath;
