@@ -80,31 +80,6 @@ public class KeyGen {
 		return null;
 	}
 
-	// TODO: Implement Later, encryption of private key to be stored
-	/*
-	private static byte[] encryptPrivate(PrivateKey privatekey, String password) {
-		// Hash password
-		
-		try {
-			MessageDigest md;
-			md = MessageDigest.getInstance("MD5");
-			md.update(password.getBytes());
-	        //Get the hash's bytes 
-	        byte[] keyKey = md.digest();
-	        Cipher cipher = Cipher.getInstance("AES/CBC/NoPadding");
-	        cipher.in
-	        
-		} catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-        //Add password bytes to digest
-        
-		// Encrypt with AES
-		return null;
-	}
-	*/
-
 	public static void saveKeysToComputer(PublicKey publickey, String publicFile, PrivateKey privatekey, String privateFile, String passcode) {
 		try {
 			writeEncryptedPrivate(privatekey, privateFile, passcode);
@@ -140,13 +115,6 @@ public class KeyGen {
             keyStream.write((new String(output.toCharArray())).getBytes());
             keyStream.flush();
             keyStream.close();
-
-
-
-            /*
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-            */
         } catch (IOException e) {
             e.printStackTrace();
         } catch (NoSuchAlgorithmException e) {

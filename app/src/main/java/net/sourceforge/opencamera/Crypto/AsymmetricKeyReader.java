@@ -30,36 +30,15 @@ import static android.content.ContentValues.TAG;
  * Created by bgardon on 3/02/17.
  */
 
-public class AsymmetricKeyReader /* extends Activity */ {
-    public static PublicKey readKey(String filename) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
-        /*
-        File f = new File(filename);
-        int fileSize = (int)f.length();
-        FileInputStream in = new FileInputStream(f);
-        byte[] res = new byte[fileSize];
-        int totalRead = 0;
-        while (totalRead < fileSize) {
-            in.read(res, totalRead, fileSize - totalRead);
-        }
-        return KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(res));
-        */
+public class AsymmetricKeyReader {
+    static PublicKey readKey(String filename) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
         try {
             PemReader pempublic = new PemReader(new FileReader(new File(filename)));
             byte[] bytes = pempublic.readPemObject().getContent();
             PublicKey pub = KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(bytes));
             pempublic.close();
             return pub;
-        } catch (FileNotFoundException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (InvalidKeySpecException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (NoSuchAlgorithmException e) {
-            // TODO Auto-generated catch block
+        } catch (IOException | InvalidKeySpecException | NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
         return null;
