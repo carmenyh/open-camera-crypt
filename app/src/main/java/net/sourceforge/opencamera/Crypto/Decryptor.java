@@ -43,11 +43,11 @@ public class Decryptor {
 		}
 	}
 
+	// Usage: Decryptor
 	public static void main(String[] args) {
 		DefaultParser parser = new DefaultParser();
         Options options = new Options();
         options.addOption("s", "secret", true, "The path of the private key file to be used to decrypt the image");
-        options.addOption("d", "use-directory", false, "Decrypt all encrypted photos in a directory");
 		options.addOption("k", "key", true, "The password with which to protect the private key");
         CommandLine commandLine;
         try {
@@ -71,29 +71,21 @@ public class Decryptor {
 		File inputPath = new File(paths[0]);
 		File outputPath = new File(paths[1]);
 
-		if (!outputPath.isDirectory()) {
+		if (!inputPath.isDirectory()) {
 			printAndExit("Output path must be a directory.");
 		}
+		if (!outputPath.isDirectory()) {
+			printAndExit("Input path must be a directory.");
+		}
 
-		boolean useDir = commandLine.hasOption('d');
-		if (useDir) {
-			if (!inputPath.isDirectory()) {
-				printAndExit("Input path must be a directory.");
+		File[] files = inputPath.listFiles(new FilenameFilter() {
+			@Override
+			public boolean accept(File dir, String name) {
+				return name.endsWith(".encrypted");
 			}
-			File[] files = inputPath.listFiles(new FilenameFilter() {
-				@Override
-				public boolean accept(File dir, String name) {
-					return name.endsWith(".encrypted");
-				}
-			});
-			for (File encryptedFile : files) {
-				decryptSingleFile(privateKey, encryptedFile, outputPath);
-			}
-		} else {
-			if (!inputPath.isFile()) {
-				printAndExit("Input path must be a file.");
-			}
-			decryptSingleFile(privateKey, inputPath, outputPath);
+		});
+		for (File encryptedFile : files) {
+			decryptSingleFile(privateKey, encryptedFile, outputPath);
 		}
 	}
 
