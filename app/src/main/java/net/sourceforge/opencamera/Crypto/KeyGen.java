@@ -29,7 +29,6 @@ import java.security.SecureRandom;
 
 
 
-import java.io.ByteArrayOutputStream;
 import java.io.CharArrayWriter;
 public class KeyGen {
 
@@ -38,7 +37,6 @@ public class KeyGen {
 		Options options = new Options();
 		options.addOption("p", "public", true, "The location at which the generated public key should be stored");
 		options.addOption("s", "secret", true, "The location at which the generated private key should be stored");
-		options.addOption("d", "device", true, "The location at which a copy of the public key should be stored for the target device");
         options.addOption("k", "key", true, "The password with which to protect the private key");
 		CommandLine commandLine;
 		try {
@@ -50,12 +48,10 @@ public class KeyGen {
 
 		String publicKeyFilename = commandLine.getOptionValue('p', "pub.pem");
 		String privateKeyFilename = commandLine.getOptionValue('s', "priv.pem");
-		String devicePublicKeyFilename = commandLine.getOptionValue('d', "pub.pem");
         String privateKeyPasscode = commandLine.getOptionValue('k', "");
 
 		KeyPair keys = generateKeys();
 		saveKeysToComputer(keys.getPublic(), publicKeyFilename, keys.getPrivate(), privateKeyFilename, privateKeyPasscode);
-		saveKeyForDevice(keys.getPublic(), devicePublicKeyFilename);
 	}
 	
 	public static KeyPair generateKeys() {
@@ -110,14 +106,4 @@ public class KeyGen {
         }
 	}
 
-	public static void saveKeyForDevice(PublicKey publickey, String SDFile) {
-		try {
-			PemWriter pempublic = new PemWriter(new FileWriter(new File(SDFile)));
-			pempublic.writeObject(new PemObject("RSA PUBLIC KEY", publickey.getEncoded()));
-			pempublic.flush();
-			pempublic.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
 }
